@@ -1,0 +1,6 @@
+{
+    "imports":
+    {
+        "react":"https://esm.sh/preact/compat"
+    }
+}

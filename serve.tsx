@@ -84,6 +84,10 @@ HTTP.serve(async(req: Request)=>
 {
     const url:URL = new URL(req.url);
 
+    if(url.pathname.endsWith("/"))
+    {
+        
+    }
     if(url.pathname === Configure.Reset)
     {
         return new Response(`cache cleared (${Transpile.Clear()} items)`);
