@@ -1,4 +1,4 @@
-import Configure, {Transpile, Extension} from "./serve.tsx";
+import {Configure, Transpile, Extension} from "./serve.tsx";
 
 const SocketsLive:Set<WebSocket> = new Set();
 const SocketsSend =(inData:string)=>{ console.log(inData); for (const socket of SocketsLive){ socket.send(inData); } }
@@ -20,6 +20,7 @@ Configure({
             }
         }
     },
+    
     Serve(inReq, inURL, inExt, inMap)
     {
         if(inReq.headers.get("upgrade") == "websocket")
@@ -38,28 +39,10 @@ Configure({
                 return new Response(e);
             }
         }
-
-        if(!inExt)
+        else
         {
-            return new Response
-(`<!doctype html>
-<html>
-    <head>
-    </head>
-    <body>
-        <div id="app"></div>
-        <script type="importmap">${JSON.stringify(inMap)}</script>
-        <script type="module">
-            import App from "app";
-            import React from "react";
-            React.render(React.createElement(App), document.querySelector("#app"))
-        </script>
-    </body>
-</html>
-`, {status:200, headers:{"content-type":"text/html"}});
+            return false;
         }
-        
-        return false;
     }
 });
 
