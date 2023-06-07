@@ -1,32 +1,71 @@
-import * as HTTP from "https://deno.land/std@0.177.0/http/server.ts";
-import Setup, {Transpile} from "./serve.tsx";
-
-const Directory = `file://${Deno.cwd().replaceAll("\\", "/")}`;
-Transpile.Config.sourceMaps = "inline";
-Setup({Proxy:Directory});
+import Setup, {Transpile, Extension} from "./serve.tsx";
 
 const SocketsLive:Set<WebSocket> = new Set();
 const SocketsSend =(inData:string)=>{ console.log(inData); for (const socket of SocketsLive){ socket.send(inData); } }
-HTTP.serve((_req:Request)=>
-{
-    if(_req.headers.get("upgrade") == "websocket")
+const Directory = `file://${Deno.cwd().replaceAll("\\", "/")}`;
+
+Setup({
+    Proxy:Directory,
+    SWCOp:
     {
-        try
+        sourceMaps: "inline",
+        minify: false,
+        jsc:
         {
-          const { response, socket } = Deno.upgradeWebSocket(_req);
-          socket.onopen = () => SocketsLive.add(socket);
-          socket.onclose = () => SocketsLive.delete(socket);
-          socket.onmessage = (e) => {};
-          socket.onerror = (e) => console.log("Socket errored:", e);
-          return response;
+            target:"es2022",
+            parser:
+            {
+                syntax: "typescript",
+                tsx: true,
+            }
         }
-        catch(e)
+    },
+    async Serve(inReq, inURL, inExt)
+    {
+        if(inReq.headers.get("upgrade") == "websocket")
         {
-            return new Response(e);
+            try
+            {
+              const { response, socket } = Deno.upgradeWebSocket(inReq);
+              socket.onopen = () => SocketsLive.add(socket);
+              socket.onclose = () => SocketsLive.delete(socket);
+              socket.onmessage = (e) => {};
+              socket.onerror = (e) => console.log("Socket errored:", e);
+              return response;
+            }
+            catch(e)
+            {
+                return new Response(e);
+            }
         }
+        
+        if(!inExt)
+        {
+            await fetch(Directory+"/deno.json");
+            
+            return new Response(
+`<!doctype html>
+<html>
+    <head>
+    </head>
+    <body>
+        <div id="app"></div>
+        <script type="importmap">
+            {
+                "imports":
+                {
+                    "react":"https://esm.sh/preact/compat"
+                }
+            }
+        </script>
+        <script type="module"></script>
+    </body>
+</html>`, {headers:{"content-type":"text/html"}});
+        }
+
+        return false;
     }
-    return new Response(`websockets only`);
-}, { port: 4444 });
+});
 
 let blocking = false;
 const filesChanged:Map<string, string> = new Map();
@@ -40,15 +79,18 @@ for await (const event of Deno.watchFs(Deno.cwd()))
         {
             for await (const [path, action] of filesChanged)
             {
-                const key = path.substring(Deno.cwd().length).replaceAll("\\", "/");
-                if(action != "remove")
-                {   
-                    const tsx = await Transpile.Fetch(Directory+key, key, true);
-                    tsx && SocketsSend(key);
-                }
-                else
+                if(Transpile.Check(Extension(path)))
                 {
-                    Transpile.Cache.delete(key);
+                    const key = path.substring(Deno.cwd().length).replaceAll("\\", "/");
+                    if(action != "remove")
+                    {   
+                        const tsx = await Transpile.Fetch(Directory+key, key, true, true);
+                        tsx && SocketsSend(key);
+                    }
+                    else
+                    {
+                        Transpile.Cache.delete(key);
+                    }
                 }
             }
             filesChanged.clear();
