@@ -1,6 +1,7 @@
 {
     "imports":
     {
-        "react":"https://esm.sh/preact/compat"
+        "react":"https://esm.sh/preact/compat",
+        "app": "./app.tsx"
     }
 }

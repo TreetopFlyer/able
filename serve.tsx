@@ -2,15 +2,42 @@ import * as MIME from "https://deno.land/std@0.180.0/media_types/mod.ts";
 import * as HTTP from "https://deno.land/std@0.177.0/http/server.ts";
 import * as SWCW from "https://esm.sh/@swc/wasm-web@1.3.62";
 
-type CustomHTTPHandler = (inReq:Request, inURL:URL, inExtension:string|false)=>false|Response|Promise<Response|false>
-type Configuration = {Proxy:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler};
-type ConfigurationArgs = {Proxy?:string, Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler};
+const ImportMap = {imports:{}};
+const ImportMapReload =async()=>
+{
+    let confText;
+    try
+    {
+        confText = await Deno.readTextFile(Deno.cwd()+"\\deno.json");
+    }
+    catch(e)
+    {
+        console.log(`No "deno.json" file found at "${Deno.cwd()}"`);
+    }
+    confText && (ImportMap.imports = Configure.Remap(JSON.parse(confText)?.imports || {}));
+};
+
+type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>})=>false|Response|Promise<Response|false>;
+type CustomRemapper = (inImports:Record<string, string>)=>Record<string, string>;
+type Configuration = {Proxy:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Remap:CustomRemapper};
+type ConfigurationArgs = {Proxy?:string, Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler, Remap?:CustomRemapper};
 let Configure:Configuration =
 {
     Proxy: "",
     Allow: "*",
     Reset: "/clear-cache",
     Serve: ()=>false,
+    Remap: (inImports)=>
+    {
+        Object.entries(inImports).forEach(([key, value])=>
+        {
+            if(value.startsWith("./"))
+            {
+                inImports[key] = value.substring(1);
+            }
+        });
+        return inImports;
+    },
     SWCOp:
     {
         sourceMaps: false,
@@ -35,7 +62,6 @@ let Configure:Configuration =
         }
     }
 };
-export default (config:ConfigurationArgs)=> Configure = {...Configure, ...config};
 
 export const Transpile =
 {
@@ -49,6 +75,7 @@ export const Transpile =
     {
         const size = this.Cache.size;
         this.Cache.clear();
+        ImportMapReload();
         return size;
     },
     Fetch: async function(inPath:string, inKey:string, inCheckCache=true)
@@ -84,38 +111,27 @@ export const Extension =(inPath:string)=>
     return posDot > posSlash ? inPath.substring(posDot+1).toLowerCase() : false;
 };
 
-SWCW.default();
+export default (config:ConfigurationArgs)=> Configure = {...Configure, ...config};
+
+await ImportMapReload();
+await SWCW.default();
 HTTP.serve(async(req: Request)=>
 {
     const url:URL = new URL(req.url);
     const ext = Extension(url.pathname);
     const headers = {"content-type":"application/json", "Access-Control-Allow-Origin": Configure.Allow, "charset":"UTF-8"};
 
-    // allow for custom handler
-    const custom = await Configure.Serve(req, url, ext);
-    if(custom)
-    {
-        return custom;
-    }
-
-    // implied index.html files
-    if(!ext)
-    {
-        return new Response(`<!doctype html>
-<html>
-    <head>
-    </head>
-    <body>
-        <script type="importmap"></script>
-        <script type="module"></script>
-    </body>
-</html>`, {headers:{...headers, "content-type":"text/html"}});
-    }
-
     // cache-reset route
     if(url.pathname === Configure.Reset)
     {
         return new Response(`{"cleared":${Transpile.Clear()}}`, {headers});
+    }
+
+    // allow for custom handler
+    const custom = await Configure.Serve(req, url, ext, ImportMap);
+    if(custom)
+    {
+        return custom;
     }
 
     // transpileable files
@@ -126,16 +142,21 @@ HTTP.serve(async(req: Request)=>
     }
 
     // all other static files
-    try
+    if(ext)
     {
-        const type = MIME.typeByExtension(ext);
-        const file = await fetch(Configure.Proxy + url.pathname);
-        const text = await file.text();
-        return new Response(text, {headers:{...headers, "content-type":type||""}});
+        try
+        {
+            const type = MIME.typeByExtension(ext);
+            const file = await fetch(Configure.Proxy + url.pathname);
+            const text = await file.text();
+            return new Response(text, {headers:{...headers, "content-type":type||""}});
+        }
+        catch(e)
+        {
+            return new Response(`{"error":"${e}", "path":"${url.pathname}"}`, {status:404, headers});
+        }
     }
-    catch(e)
-    {
-        return new Response(`{"error":"${e}", "path":"${url.pathname}"}`, {status:404, headers});
-    }
+
+    return new Response(`{"error":"unmatched route", "path":"${url.pathname}"}`, {status:404, headers});
 
 });

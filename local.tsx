@@ -1,10 +1,10 @@
-import Setup, {Transpile, Extension} from "./serve.tsx";
+import Configure, {Transpile, Extension} from "./serve.tsx";
 
 const SocketsLive:Set<WebSocket> = new Set();
 const SocketsSend =(inData:string)=>{ console.log(inData); for (const socket of SocketsLive){ socket.send(inData); } }
 const Directory = `file://${Deno.cwd().replaceAll("\\", "/")}`;
 
-Setup({
+Configure({
     Proxy:Directory,
     SWCOp:
     {
@@ -20,7 +20,7 @@ Setup({
             }
         }
     },
-    async Serve(inReq, inURL, inExt)
+    Serve(inReq, inURL, inExt, inMap)
     {
         if(inReq.headers.get("upgrade") == "websocket")
         {
@@ -38,31 +38,27 @@ Setup({
                 return new Response(e);
             }
         }
-        
+
         if(!inExt)
         {
-            await fetch(Directory+"/deno.json");
-            
-            return new Response(
-`<!doctype html>
+            return new Response
+(`<!doctype html>
 <html>
     <head>
     </head>
     <body>
         <div id="app"></div>
-        <script type="importmap">
-            {
-                "imports":
-                {
-                    "react":"https://esm.sh/preact/compat"
-                }
-            }
+        <script type="importmap">${JSON.stringify(inMap)}</script>
+        <script type="module">
+            import App from "app";
+            import React from "react";
+            React.render(React.createElement(App), document.querySelector("#app"))
         </script>
-        <script type="module"></script>
     </body>
-</html>`, {headers:{"content-type":"text/html"}});
+</html>
+`, {status:200, headers:{"content-type":"text/html"}});
         }
-
+        
         return false;
     }
 });
@@ -84,7 +80,7 @@ for await (const event of Deno.watchFs(Deno.cwd()))
                     const key = path.substring(Deno.cwd().length).replaceAll("\\", "/");
                     if(action != "remove")
                     {   
-                        const tsx = await Transpile.Fetch(Directory+key, key, true, true);
+                        const tsx = await Transpile.Fetch(Directory+key, key, true);
                         tsx && SocketsSend(key);
                     }
                     else
