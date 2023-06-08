@@ -1,8 +1,11 @@
 {
-    "compilerOptions": { "lib": ["deno.window", "dom"]},
+    "compilerOptions": { "lib": ["deno.window", "dom"],
+        "jsx": "react-jsx",
+        "jsxImportSource": "https://esm.sh/preact@10.15.1"
+    },
     "imports":
     {
-        "react":"https://esm.sh/preact@10.13.2/compat",
+        "react":"https://esm.sh/preact@10.15.1/compat",
         "app": "./app.tsx"
     }
 }

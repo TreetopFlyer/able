@@ -2,22 +2,28 @@ import * as MIME from "https://deno.land/std@0.180.0/media_types/mod.ts";
 import * as HTTP from "https://deno.land/std@0.177.0/http/server.ts";
 import * as SWCW from "https://esm.sh/@swc/wasm-web@1.3.62";
 
-const ImportMap = {imports:{}};
+type DenoConfig = {imports:Record<string, string>};
+const ImportMap:DenoConfig = {imports:{}};
 const ImportMapReload =async()=>
 {
-    let confText;
+    let json:DenoConfig;
+    const path = Configuration.Proxy+"/deno.json";
     try
     {
-        confText = await Deno.readTextFile(Deno.cwd()+"\\deno.json");
+        const resp = await fetch(path);
+        json = await resp.json();
+        if(!json?.imports)
+        { throw new Error("imports not specified in deno.json") }
     }
     catch(e)
     {
-        console.log(`No "deno.json" file found at "${Deno.cwd()}"`);
+        console.log(`error reading deno config "${path}" message:"${e}"`);
+        return;
     }
-    confText && (ImportMap.imports = Configuration.Remap(JSON.parse(confText)?.imports || {}));
+    ImportMap.imports = Configuration.Remap(json.imports);
 };
 
-type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>})=>false|Response|Promise<Response|false>;
+type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>})=>void|false|Response|Promise<Response|void|false>;
 type CustomRemapper = (inImports:Record<string, string>)=>Record<string, string>;
 type Configuration = {Proxy:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
 type ConfigurationArgs = {Proxy?:string, Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler, Shell?:CustomHTTPHandler, Remap?:CustomRemapper};
@@ -26,10 +32,7 @@ let Configuration:Configuration =
     Proxy: `file://${Deno.cwd().replaceAll("\\", "/")}`,
     Allow: "*",
     Reset: "/clear-cache",
-    Serve(inReq, inURL, inExt, inMap)
-    {
-        return false;
-    },
+    Serve(inReq, inURL, inExt, inMap){},
     Remap: (inImports)=>
     {
         Object.entries(inImports).forEach(([key, value])=>
@@ -39,7 +42,13 @@ let Configuration:Configuration =
                 inImports[key] = value.substring(1);
             }
         });
-        Configuration.SWCOp.jsc.transform.react.importSource = inImports["react"];
+        const reactURL = inImports["react"] ?? console.log("React is not defined in imports");
+        const setting = Configuration.SWCOp?.jsc?.transform?.react;
+        if(setting)
+        {
+            setting.importSource = reactURL;
+        }
+        console.log(inImports);
         return inImports;
     },
     Shell(inReq, inURL, inExt, inMap)
@@ -119,7 +128,7 @@ export const Transpile =
             }
             catch(e)
             {
-                //console.log(`Transpile.Fetch error. Key:"${inKey}" Path:"${inPath}" Error:"${e}"`);
+                console.log(`Transpile.Fetch error. Key:"${inKey}" Path:"${inPath}" Error:"${e}"`);
                 return null;
             }
         }

@@ -20,7 +20,17 @@ Configure({
             }
         }
     },
-    
+    Remap: (inImports)=>
+    {
+        Object.entries(inImports).forEach(([key, value])=>
+        {
+            if(value.startsWith("./"))
+            {
+                inImports[key] = value.substring(1);
+            }
+        });
+        return inImports;
+    },
     Serve(inReq, inURL, inExt, inMap)
     {
         if(inReq.headers.get("upgrade") == "websocket")
@@ -36,12 +46,7 @@ Configure({
             }
             catch(e)
             {
-                return new Response(e);
             }
-        }
-        else
-        {
-            return false;
         }
     }
 });
