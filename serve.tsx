@@ -178,8 +178,20 @@ HTTP.serve(async(req: Request)=>
     // transpileable files
     if(Transpile.Check(ext))
     {
-        const lookup = await Transpile.Fetch(Configuration.Proxy + url.pathname, url.pathname);
-        return new Response(lookup, {status:lookup?200:404, headers:{...headers, "content-type":"application/javascript"}} );
+        if(url.pathname.startsWith("/_lib_/"))
+        {
+            const path = import.meta.url+"/.."+url.pathname;
+            const code = await Transpile.Fetch(path, url.pathname, true);
+            if(code)
+            {
+                return new Response(code, {headers:{"content-type":"application/javascript"}});
+            }
+        }
+        else
+        {
+            const lookup = await Transpile.Fetch(Configuration.Proxy + url.pathname, url.pathname);
+            return new Response(lookup, {status:lookup?200:404, headers:{...headers, "content-type":"application/javascript"}} );            
+        }
     }
 
     // all other static files
