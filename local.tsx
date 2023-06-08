@@ -31,8 +31,18 @@ Configure({
         });
         return inImports;
     },
-    Serve(inReq, inURL, inExt, inMap)
+    async Serve(inReq, inURL, inExt, inMap)
     {
+        if(inURL.pathname.startsWith("/hmr/"))
+        {
+            const path = import.meta.url+"/.."+inURL.pathname;
+            const code = await Transpile.Fetch(path, inURL.pathname, true);
+            if(code)
+            {
+                return new Response(code, {headers:{"content-type":"application/javascript"}})
+            }
+        }
+
         if(inReq.headers.get("upgrade") == "websocket")
         {
             try
