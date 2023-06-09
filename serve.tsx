@@ -64,7 +64,8 @@ let Configuration:Configuration =
                     <script type="module">
                         import App from "app";
                         import React from "react";
-                        React.render(React.createElement(App), document.querySelector("#app"))
+                        const Wrapper =(props)=> React.createElement(App);
+                        React.render(React.createElement(Wrapper), document.querySelector("#app"))
                     </script>
                 </body>
             </html>`, {status:200, headers:{"content-type":"text/html"}});
@@ -165,16 +166,6 @@ HTTP.serve(async(req: Request)=>
         return custom;
     }
 
-    // custom page html
-    if(!ext)
-    {
-        const shell = await Configuration.Shell(req, url, ext, ImportMap);
-        if(shell)
-        {
-            return shell;
-        }
-    }
-
     // transpileable files
     if(Transpile.Check(ext))
     {
@@ -191,6 +182,16 @@ HTTP.serve(async(req: Request)=>
         {
             const lookup = await Transpile.Fetch(Configuration.Proxy + url.pathname, url.pathname);
             return new Response(lookup, {status:lookup?200:404, headers:{...headers, "content-type":"application/javascript"}} );            
+        }
+    }
+
+    // custom page html
+    if(!ext)
+    {
+        const shell = await Configuration.Shell(req, url, ext, ImportMap);
+        if(shell)
+        {
+            return shell;
         }
     }
 
