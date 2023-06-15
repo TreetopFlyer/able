@@ -18,7 +18,7 @@ Socket.addEventListener('message', (event:{data:string})=>
             return import(event.data+"?reload="+SocketReloads)
             .then(updatedModule=>handler(updatedModule));
         })
-    ).then(HMR.update);
+    ).then(()=>HMR.update());
 });
 let SocketReloads = 0;
 // heartbeat
@@ -26,19 +26,19 @@ const SocketTimer = setInterval(()=>{Socket.send("ping")}, 5000);
 
 const HMR = {
     reloads:0,
-    registered: new Map() as Map<string, ()=>void>,
+    createdElements: new Map() as Map<string, ()=>void>,
     states: new Map(),
     statesOld: new Map(),
     wireframe: false,
-    onChange(key:string, value:()=>void):void
+    onChange(reactID:string, value:()=>void):void
     {
-        this.registered.set(key, value);
+        this.createdElements.set(reactID, value);
     },
     update()
     {
         this.reloads++;
-        this.registered.forEach(handler=>handler());
-        this.registered.clear();
+        this.createdElements.forEach(handler=>handler());
+        this.createdElements.clear();
         this.statesOld = this.states;
         this.states = new Map();
         this.echoState();

@@ -43,17 +43,17 @@ Configure({
             const imp = await import(Directory+inURL.pathname);
             const members = [];
             for( const key in imp ) { members.push(key); }
-            return new Response(`import {FileListen} from "/_lib_/hmr.tsx";
-                import * as Import from "${inURL.pathname}?reload=0";
-                ${ members.map(m=>`let proxy_${m} = Import.${m};
-                export { proxy_${m} as ${m} };
-                `).join(" ") }
-                const reloadHandler = (updatedModule)=>
-                {
-                ${ members.map(m=>`proxy_${m} = updatedModule.${m};`).join("\n") }
-                };
-                FileListen("${inURL.pathname}", reloadHandler);`, {headers:{"content-type":"application/javascript"}}
-            );
+
+            const code =`
+import {FileListen} from "/_lib_/hmr.tsx";
+import * as Import from "${inURL.pathname}?reload=0";
+${ members.map(m=>`let proxy_${m} = Import.${m}; export { proxy_${m} as ${m} };`).join("\n") }
+FileListen("${inURL.pathname}", (updatedModule)=>
+{
+    ${ members.map(m=>`proxy_${m} = updatedModule.${m};`).join("\n") }
+});`            
+
+            return new Response(code, {headers:{"content-type":"application/javascript"}});
         }
 
 
