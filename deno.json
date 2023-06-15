@@ -1,12 +1,17 @@
 {
     "compilerOptions": { "lib": ["deno.window", "dom"],
         "jsx": "react-jsx",
-        "jsxImportSource": "https://esm.sh/preact@10.15.1"
+        "jsxImportSource": "https://esm.sh/preact@10.15.1/compat"
     },
     "imports":
     {
         "react":"https://esm.sh/preact@10.15.1/compat",
         "react-original":"https://esm.sh/preact@10.15.1/compat",
         "app": "./app.tsx"
+    },
+    "tasks":
+    {
+        "local": "deno run -A --no-lock ./local.tsx",
+        "serve": "deno run -A --no-lock ./serve.tsx"
     }
 }

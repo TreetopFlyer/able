@@ -1,27 +1,28 @@
-
-let reloads = 0;
-const listeners = new Map() as Map<string, Array<(module:unknown)=>void>>;
-const socket:WebSocket = new WebSocket("ws://"+document.location.host);
-socket.addEventListener('message', (event) =>
-{
-    let handlers = listeners.get(event.data)??[];
-    reloads++;
-    Promise.all(
-        handlers.map(handler=>
-        {
-            return import(event.data+"?reload="+reloads)
-            .then(updatedModule=>handler(updatedModule));
-        })
-    ).then(()=>HMR.update());
-});
-const socketTimer = setInterval(()=>{socket.send("ping")}, 1000);
-
+type FileHandler = (module:unknown)=>void
+const FileListeners = new Map() as Map<string, Array<FileHandler>>;
 export const FileListen =(inPath:string, inHandler:()=>void)=>
 {
-    const members = listeners.get(inPath)??[];
+    const members = FileListeners.get(inPath)??[];
     members.push(inHandler);
-    listeners.set(inPath, members);
+    FileListeners.set(inPath, members);
 };
+
+const Socket:WebSocket = new WebSocket("ws://"+document.location.host);
+Socket.addEventListener('message', (event:{data:string})=>
+{
+    const handlers = FileListeners.get(event.data)??[];
+    SocketReloads++;
+    Promise.all(
+        handlers.map((handler)=>
+        {
+            return import(event.data+"?reload="+SocketReloads)
+            .then(updatedModule=>handler(updatedModule));
+        })
+    ).then(HMR.update);
+});
+let SocketReloads = 0;
+// heartbeat
+const SocketTimer = setInterval(()=>{Socket.send("ping")}, 5000);
 
 const HMR = {
     reloads:0,

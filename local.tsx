@@ -22,6 +22,7 @@ Configure({
     },
     Remap: (inImports)=>
     {
+        console.log("running remapper");
         Object.entries(inImports).forEach(([key, value])=>
         {
             if(value.startsWith("./"))

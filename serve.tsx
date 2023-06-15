@@ -143,7 +143,11 @@ export const Extension =(inPath:string)=>
     return posDot > posSlash ? inPath.substring(posDot+1).toLowerCase() : false;
 };
 
-export const Configure =(config:ConfigurationArgs)=> Configuration = {...Configuration, ...config};
+export const Configure =(config:ConfigurationArgs)=>
+{
+    Configuration = {...Configuration, ...config};
+    ImportMapReload();
+}
 
 await ImportMapReload();
 await SWCW.default();
