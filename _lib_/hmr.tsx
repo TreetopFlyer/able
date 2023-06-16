@@ -1,3 +1,5 @@
+import { type StateCapture } from "./react.tsx";
+
 type FileHandler = (module:unknown)=>void
 const FileListeners = new Map() as Map<string, Array<FileHandler>>;
 export const FileListen =(inPath:string, inHandler:()=>void)=>
@@ -27,8 +29,8 @@ const SocketTimer = setInterval(()=>{Socket.send("ping")}, 5000);
 const HMR = {
     reloads:0,
     createdElements: new Map() as Map<string, ()=>void>,
-    states: new Map(),
-    statesOld: new Map(),
+    states: new Map() as Map<string, StateCapture>,
+    statesOld: new Map() as Map<string, StateCapture>,
     wireframe: false,
     onChange(reactID:string, value:()=>void):void
     {
@@ -61,17 +63,3 @@ const HMR = {
 };
 
 export {HMR};
-
-export const MapAt =(inMap, inIndex)=>
-{
-    let index = 0;
-    for(const kvp of inMap)
-    {
-        if(index == inIndex)
-        {
-            return kvp;
-        }
-        index++;
-    }
-    return false;
-};

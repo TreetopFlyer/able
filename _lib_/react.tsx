@@ -1,5 +1,24 @@
 import * as ReactParts from "react-original";
-import { HMR, MapAt } from "./hmr.tsx";
+import { HMR } from "./hmr.tsx";
+
+export type StateType = boolean|number|string|Record<string, string>
+export type StateCapture = {state:StateType, set:ReactParts.StateUpdater<StateType>, reload:number};
+
+const pluck =(m:Map<string, number>)=> m.keys()
+
+const MapAt =(inMap:Map<string, StateCapture>, inIndex:number)=>
+{
+    let index = 0;
+    for(const kvp of inMap)
+    {
+        if(index == inIndex)
+        {
+            return kvp;
+        }
+        index++;
+    }
+    return false;
+};
 
 const H = ReactParts.createElement;
 
@@ -29,7 +48,7 @@ const ProxyCreate =(...args)=>
     return typeof args[0] != "string" ? H(ProxyElement, {__args:args, ...args[1]}) : H(...args);
 };
 
-const ProxyState =(arg)=>
+const ProxyState =(arg:StateType)=>
 {
     const id = ReactParts.useId();
     const trueArg = arg;
