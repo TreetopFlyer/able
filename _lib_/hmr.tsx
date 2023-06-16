@@ -29,7 +29,7 @@ const SocketTimer = setInterval(()=>{Socket.send("ping")}, 5000);
 const HMR = {
     reloads:0,
     createdElements: new Map() as Map<string, ()=>void>,
-    states: new Map() as Map<string, StateCapture>,
+    statesNew: new Map() as Map<string, StateCapture>,
     statesOld: new Map() as Map<string, StateCapture>,
     wireframe: false,
     onChange(reactID:string, value:()=>void):void
@@ -41,24 +41,8 @@ const HMR = {
         this.reloads++;
         this.createdElements.forEach(handler=>handler());
         this.createdElements.clear();
-        this.statesOld = this.states;
-        this.states = new Map();
-        this.echoState();
-    },
-    echoState()
-    {
-        let output = [];
-        for(const[key, val] of HMR.statesOld)
-        {
-            output[key] = val.state+"--"+val.reload;
-        }
-        console.log(output);
-        output = [];
-        for(const[key, val] of HMR.states)
-        {
-            output[key] = val.state+"--"+val.reload;
-        }
-        console.log(output);
+        this.statesOld = this.statesNew;
+        this.statesNew = new Map();
     }
 };
 

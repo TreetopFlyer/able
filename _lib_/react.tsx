@@ -3,9 +3,9 @@ import { HMR } from "./hmr.tsx";
 
 export type StateType = boolean|number|string|Record<string, string>
 export type StateCapture = {state:StateType, set:ReactParts.StateUpdater<StateType>, reload:number};
+type FuncArgs = [element:keyof ReactParts.JSX.IntrinsicElements, props:Record<string, string>, children:ReactParts.JSX.Element[]];
 
-const pluck =(m:Map<string, number>)=> m.keys()
-
+const H = ReactParts.createElement;
 const MapAt =(inMap:Map<string, StateCapture>, inIndex:number)=>
 {
     let index = 0;
@@ -20,9 +20,7 @@ const MapAt =(inMap:Map<string, StateCapture>, inIndex:number)=>
     return false;
 };
 
-const H = ReactParts.createElement;
-
-const ProxyElement = (props)=>
+const ProxyElement = (props:{__args:FuncArgs})=>
 {
     const id = ReactParts.useId();
     const [stateGet, stateSet] = ReactParts.useState(0);
@@ -43,7 +41,7 @@ const ProxyElement = (props)=>
     }
 };
 
-const ProxyCreate =(...args)=>
+const ProxyCreate =(...args:FuncArgs)=>
 {
     return typeof args[0] != "string" ? H(ProxyElement, {__args:args, ...args[1]}) : H(...args);
 };
@@ -54,7 +52,7 @@ const ProxyState =(arg:StateType)=>
     const trueArg = arg;
 
     // does statesOld have an entry for this state? use that instead of the passed arg
-    const check =  MapAt(HMR.statesOld, HMR.states.size);
+    const check =  MapAt(HMR.statesOld, HMR.statesNew.size);
     if(check)
     {
         arg = check[1].state;
@@ -68,22 +66,28 @@ const ProxyState =(arg:StateType)=>
             if(HMR.reloads == lastKnowReloads)
             {
                 // this is a switch/ui change, not a HMR reload change
-                const oldState = MapAt(HMR.statesOld, HMR.states.size-1);
-                HMR.statesOld.set(oldState[0], {...oldState[1], state:trueArg});
+                const oldState = MapAt(HMR.statesOld, HMR.statesNew.size-1);
+                oldState && HMR.statesOld.set(oldState[0], {...oldState[1], state:trueArg});
+
+                console.log("check: ui-invoked")
             }
-            HMR.states.delete(id);
+            else
+            {
+                console.log("check: hmr-invoked")
+            }
+            HMR.statesNew.delete(id);
         }
     }, []);
 
-    if(!HMR.states.has(id))
+    if(!HMR.statesNew.has(id))
     {
-        HMR.states.set(id, {state:arg, set:stateSet, reload:HMR.reloads});
+        HMR.statesNew.set(id, {state:arg, set:stateSet, reload:HMR.reloads});
     }
     
-    function proxySetter (arg)
+    function proxySetter (arg:StateType)
     {
         //console.log("state spy update", id, arg);
-        HMR.states.set(id, {state:arg, set:stateSet, reload:HMR.reloads});
+        HMR.statesNew.set(id, {state:arg, set:stateSet, reload:HMR.reloads});
         return stateSet(arg);
     }
     return [stateGet, proxySetter];
@@ -91,6 +95,6 @@ const ProxyState =(arg:StateType)=>
 };
 
 export * from "react-original";
-export { ProxyCreate as createElement, ProxyState as useState };
+export {ProxyCreate as createElement, ProxyState as useState };
 export const isProxy = true;
-export default {...ReactParts.default, createElement:ProxyCreate, useState:ProxyState, isProxy:true};
+export default {...ReactParts, createElement:ProxyCreate, useState:ProxyState, isProxy:true};
