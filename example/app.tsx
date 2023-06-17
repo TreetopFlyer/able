@@ -28,7 +28,7 @@ const Inner =()=>
 export default ()=>
 {
     return <CTXString.Provider value="intradestink">
-        <div><h1>hey???</h1></div>
+        <div><h1>Title</h1></div>
         <Outer>
             <Inner/>
         </Outer>

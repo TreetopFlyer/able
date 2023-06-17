@@ -1,7 +1,7 @@
 import { type StateCapture } from "./react.tsx";
 
-type FileHandler = (module:unknown)=>void
-const FileListeners = new Map() as Map<string, Array<FileHandler>>;
+
+const FileListeners = new Map() as Map<string, Array<(module:unknown)=>void>>;
 export const FileListen =(inPath:string, inHandler:()=>void)=>
 {
     const members = FileListeners.get(inPath)??[];
@@ -10,37 +10,34 @@ export const FileListen =(inPath:string, inHandler:()=>void)=>
 };
 
 const Socket:WebSocket = new WebSocket("ws://"+document.location.host);
-Socket.addEventListener('message', (event:{data:string})=>
+Socket.addEventListener('message', async(event:{data:string})=>
 {
+    // When a file changes, dynamically re-import it to get the updated members
+    // send the updated members to any listeners for that file
+    const reImport = await import(event.data+"?reload="+HMR.reloads);
     const handlers = FileListeners.get(event.data)??[];
-    SocketReloads++;
-    Promise.all(
-        handlers.map((handler)=>
-        {
-            return import(event.data+"?reload="+SocketReloads)
-            .then(updatedModule=>handler(updatedModule));
-        })
-    ).then(()=>HMR.update());
+    handlers.forEach(handler=>handler(reImport));
+    HMR.update();
 });
-let SocketReloads = 0;
-// heartbeat
+Socket.addEventListener("error", ()=>{clearInterval(SocketTimer); console.log("HRM socket lost")})
 const SocketTimer = setInterval(()=>{Socket.send("ping")}, 5000);
 
-const HMR = {
-    reloads:0,
-    createdElements: new Map() as Map<string, ()=>void>,
+const HMR =
+{
+    reloads:1,
+    RegisteredComponents: new Map() as Map<string, ()=>void>,
     statesNew: new Map() as Map<string, StateCapture>,
     statesOld: new Map() as Map<string, StateCapture>,
     wireframe: false,
-    onChange(reactID:string, value:()=>void):void
+    RegisterComponent(reactID:string, value:()=>void):void
     {
-        this.createdElements.set(reactID, value);
+        this.RegisteredComponents.set(reactID, value);
     },
     update()
     {
         this.reloads++;
-        this.createdElements.forEach(handler=>handler());
-        this.createdElements.clear();
+        this.RegisteredComponents.forEach(handler=>handler());
+        this.RegisteredComponents.clear();
         this.statesOld = this.statesNew;
         this.statesNew = new Map();
     }

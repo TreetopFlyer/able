@@ -20,11 +20,24 @@ const MapAt =(inMap:Map<string, StateCapture>, inIndex:number)=>
     return false;
 };
 
+
+const ProxyCreate =(...args:FuncArgs)=>
+{
+    if(typeof args[0] == "string")
+    {
+        return H(...args)
+    }
+    else
+    {
+        return H(ProxyElement, {__args:args, ...args[1]});        
+    }
+};
+
 const ProxyElement = (props:{__args:FuncArgs})=>
 {
-    const id = ReactParts.useId();
     const [stateGet, stateSet] = ReactParts.useState(0);
-    ReactParts.useEffect(()=>HMR.onChange(id, ()=>stateSet(stateGet+1)));
+    const id = ReactParts.useId();
+    HMR.RegisterComponent(id, ()=>stateSet(stateGet+1));
 
     const child = H(...props.__args);
 
@@ -37,37 +50,27 @@ const ProxyElement = (props:{__args:FuncArgs})=>
     }
     else
     {
-        return child;
+        return child;        
     }
 };
 
-const ProxyCreate =(...args:FuncArgs)=>
-{
-    return typeof args[0] != "string" ? H(ProxyElement, {__args:args, ...args[1]}) : H(...args);
-};
 
 const ProxyState =(arg:StateType)=>
 {
     const id = ReactParts.useId();
-    const trueArg = arg;
 
     // does statesOld have an entry for this state? use that instead of the passed arg
     const check =  MapAt(HMR.statesOld, HMR.statesNew.size);
-    if(check)
-    {
-        arg = check[1].state;
-        console.info(`BOOTING with ${arg}`);
-    }
 
     const lastKnowReloads = HMR.reloads;
-    const [stateGet, stateSet] = ReactParts.useState(arg);
+    const [stateGet, stateSet] = ReactParts.useState(check ? check[1].state : arg);
     ReactParts.useEffect(()=>{
         return ()=>{
             if(HMR.reloads == lastKnowReloads)
             {
                 // this is a switch/ui change, not a HMR reload change
                 const oldState = MapAt(HMR.statesOld, HMR.statesNew.size-1);
-                oldState && HMR.statesOld.set(oldState[0], {...oldState[1], state:trueArg});
+                oldState && HMR.statesOld.set(oldState[0], {...oldState[1], state:arg});
 
                 console.log("check: ui-invoked")
             }
