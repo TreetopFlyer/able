@@ -19,7 +19,7 @@ Socket.addEventListener('message', async(event:{data:string})=>
     handlers.forEach(handler=>handler(reImport));
     HMR.update();
 });
-Socket.addEventListener("error", ()=>{clearInterval(SocketTimer); console.log("HRM socket lost")})
+Socket.addEventListener("error", ()=>{clearInterval(SocketTimer); console.log("HMR socket lost")})
 const SocketTimer = setInterval(()=>{Socket.send("ping")}, 5000);
 
 const HMR =

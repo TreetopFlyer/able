@@ -6,7 +6,7 @@ export type StateCapture = {state:StateType, set:ReactParts.StateUpdater<StateTy
 type FuncArgs = [element:keyof ReactParts.JSX.IntrinsicElements, props:Record<string, string>, children:ReactParts.JSX.Element[]];
 
 const H = ReactParts.createElement;
-const MapAt =(inMap:Map<string, StateCapture>, inIndex:number)=>
+const MapIndex =(inMap:Map<string, StateCapture>, inIndex:number)=>
 {
     let index = 0;
     for(const kvp of inMap)
@@ -58,18 +58,24 @@ const ProxyElement = (props:{__args:FuncArgs})=>
 const ProxyState =(arg:StateType)=>
 {
     const id = ReactParts.useId();
-
+    //const argOriginal = arg;
     // does statesOld have an entry for this state? use that instead of the passed arg
-    const check =  MapAt(HMR.statesOld, HMR.statesNew.size);
+    const check =  MapIndex(HMR.statesOld, HMR.statesNew.size);
+    const argOld = check ? check[1].state : arg;
 
     const lastKnowReloads = HMR.reloads;
-    const [stateGet, stateSet] = ReactParts.useState(check ? check[1].state : arg);
+    const [stateGet, stateSet] = ReactParts.useState(argOld);
     ReactParts.useEffect(()=>{
+
+        
+
+        /*
+        i have no idea what this does
         return ()=>{
             if(HMR.reloads == lastKnowReloads)
             {
                 // this is a switch/ui change, not a HMR reload change
-                const oldState = MapAt(HMR.statesOld, HMR.statesNew.size-1);
+                const oldState = MapIndex(HMR.statesOld, HMR.statesNew.size-1);
                 oldState && HMR.statesOld.set(oldState[0], {...oldState[1], state:arg});
 
                 console.log("check: ui-invoked")
@@ -80,18 +86,19 @@ const ProxyState =(arg:StateType)=>
             }
             HMR.statesNew.delete(id);
         }
+        */
     }, []);
 
     if(!HMR.statesNew.has(id))
     {
-        HMR.statesNew.set(id, {state:arg, set:stateSet, reload:HMR.reloads});
+        HMR.statesNew.set(id, {state:argOld, set:stateSet, reload:HMR.reloads});
     }
     
-    function proxySetter (arg:StateType)
+    function proxySetter (inArg:StateType)
     {
         //console.log("state spy update", id, arg);
-        HMR.statesNew.set(id, {state:arg, set:stateSet, reload:HMR.reloads});
-        return stateSet(arg);
+        HMR.statesNew.set(id, {state:inArg, set:stateSet, reload:HMR.reloads});
+        return stateSet(inArg);
     }
     return [stateGet, proxySetter];
 
