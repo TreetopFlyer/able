@@ -3,12 +3,6 @@ import React from "react";
 
 const CTXString = React.createContext("lol");
 
-const Butt =(props:{label:string})=>
-{
-    const [countGet, countSet] = React.useState(3);
-    return <button onClick={e=>countSet(countGet+1)}>{props.label+" -- "+countGet}</button>;
-};
-
 type StateBinding<T> = [get:T, set:React.StateUpdater<T>];
 const CTXState = React.createContext(null) as React.Context<StateBinding<string>|null>;
 const Outer =(props:{children:VNode})=>
@@ -21,14 +15,17 @@ const Outer =(props:{children:VNode})=>
 const Inner =()=>
 {
     const binding = React.useContext(CTXState);
-    return <button onClick={e=>binding && binding[1](Math.random().toString())}>{binding?.[0]??"(its null)"}!</button>
+    return <button onClick={e=>binding && binding[1](Math.random().toString())}>{binding?.[0]??"(its null)"} :)</button>
 };
 
 
 export default ()=>
 {
     return <CTXString.Provider value="intradestink">
-        <div><h1>Title</h1></div>
+        <div>
+            <h1>Title!</h1>
+            <h2>subtitle</h2>
+        </div>
         <Outer>
             <Inner/>
         </Outer>

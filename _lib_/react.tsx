@@ -5,6 +5,7 @@ export type StateType = boolean|number|string|Record<string, string>
 export type StateCapture = {state:StateType, set:ReactParts.StateUpdater<StateType>, reload:number};
 type FuncArgs = [element:keyof ReactParts.JSX.IntrinsicElements, props:Record<string, string>, children:ReactParts.JSX.Element[]];
 
+
 const H = ReactParts.createElement;
 const MapIndex =(inMap:Map<string, StateCapture>, inIndex:number)=>
 {
@@ -20,18 +21,7 @@ const MapIndex =(inMap:Map<string, StateCapture>, inIndex:number)=>
     return false;
 };
 
-
-const ProxyCreate =(...args:FuncArgs)=>
-{
-    if(typeof args[0] == "string")
-    {
-        return H(...args)
-    }
-    else
-    {
-        return H(ProxyElement, {__args:args, ...args[1]});        
-    }
-};
+const ProxyCreate =(...args:FuncArgs)=> (typeof args[0] == "string")  ?  H(...args)  :  H(ProxyElement, {__args:args, ...args[1]});
 
 const ProxyElement = (props:{__args:FuncArgs})=>
 {
@@ -54,51 +44,44 @@ const ProxyElement = (props:{__args:FuncArgs})=>
     }
 };
 
-
-const ProxyState =(arg:StateType)=>
+const ProxyState =(argNew:StateType)=>
 {
-    const id = ReactParts.useId();
-    //const argOriginal = arg;
     // does statesOld have an entry for this state? use that instead of the passed arg
     const check =  MapIndex(HMR.statesOld, HMR.statesNew.size);
-    const argOld = check ? check[1].state : arg;
+    const argOld = check ? check[1].state : argNew;
+
+    const id = ReactParts.useId();
+    const [stateGet, stateSet] = ReactParts.useState(argOld);
+
+    // state updates due to clicks, interactivity, etc. since the last reload may already be in statesNew for this slot.
+    // DONT overwrite it.
+    if(!HMR.statesNew.get(id))
+    {
+        HMR.statesNew.set(id, {state:stateGet, set:stateSet, reload:HMR.reloads});
+    }
 
     const lastKnowReloads = HMR.reloads;
-    const [stateGet, stateSet] = ReactParts.useState(argOld);
     ReactParts.useEffect(()=>{
-
-        
-
-        /*
-        i have no idea what this does
         return ()=>{
-            if(HMR.reloads == lastKnowReloads)
+            if(HMR.reloads == lastKnowReloads)/*i have no idea what this does. this may have to be re-introduced when routing is added*/
             {
                 // this is a switch/ui change, not a HMR reload change
                 const oldState = MapIndex(HMR.statesOld, HMR.statesNew.size-1);
-                oldState && HMR.statesOld.set(oldState[0], {...oldState[1], state:arg});
-
+                oldState && HMR.statesOld.set(oldState[0], {...oldState[1], state:argNew});
                 console.log("check: ui-invoked")
             }
-            else
-            {
-                console.log("check: hmr-invoked")
-            }
+
             HMR.statesNew.delete(id);
         }
-        */
     }, []);
 
-    if(!HMR.statesNew.has(id))
-    {
-        HMR.statesNew.set(id, {state:argOld, set:stateSet, reload:HMR.reloads});
-    }
-    
+
+    // do we need to account for the function set?
     function proxySetter (inArg:StateType)
     {
-        //console.log("state spy update", id, arg);
-        HMR.statesNew.set(id, {state:inArg, set:stateSet, reload:HMR.reloads});
-        return stateSet(inArg);
+        const stateUser = {state:inArg, set:stateSet, reload:HMR.reloads};
+        HMR.statesNew.set(id, stateUser);
+        stateSet(inArg);
     }
     return [stateGet, proxySetter];
 
