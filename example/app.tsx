@@ -1,11 +1,10 @@
-import { VNode } from "https://esm.sh/v118/preact@10.15.1/src/index.js";
 import React from "react";
 
 const CTXString = React.createContext("lol");
 
 type StateBinding<T> = [get:T, set:React.StateUpdater<T>];
 const CTXState = React.createContext(null) as React.Context<StateBinding<number>|null>;
-const Outer =(props:{children:VNode})=>
+const Outer =(props:{children:Preact.VNode})=>
 {
     const binding = React.useState(11);
     return <CTXState.Provider value={binding}>
@@ -19,12 +18,23 @@ const Inner =()=>
 };
 
 
+type Store = {name:string, age:number}
+const reducer =(inState:Store, inAction:number)=>
+{
+    return {...inState, age:inState.age+inAction};
+}
+
 export default ()=>
 {
+    
+    const [Store, Dispatch] = React.useReducer(reducer, {name:"seth", age:24} as Store)
     return <CTXString.Provider value="intradestink">
         <div>
             <h1>Title!</h1>
-            <h2>subtitle</h2>
+            <h2>subtitle!</h2>
+            <p>
+                <button onClick={e=>Dispatch(1)}>{Store.name}|{Store.age}?</button>
+            </p>
         </div>
         <Outer>
             <Inner/>

@@ -85,7 +85,6 @@ const ProxyState =(argNew:StateType)=>
             //const passedFunction = inArg;
             stateSet((oldState:StateType)=>
             {
-                console.log("function setter intercepted");
                 const output = inArg(oldState);
                 stateUser.state = output;
                 HMR.statesNew.set(id, stateUser);
@@ -102,7 +101,32 @@ const ProxyState =(argNew:StateType)=>
 
 };
 
+type Storelike = Record<string, string>
+const ProxyReducer =(inReducer:(inState:Storelike, inAction:string)=>Storelike, inState:Storelike)=>
+{
+    const check =  MapIndex(HMR.statesOld, HMR.statesNew.size);
+    const argOld = check ? check[1].state : inState;
+
+    const intercept =(inInterceptState:Storelike, inInterceptAction:string)=>
+    {
+        const capture = inReducer(inInterceptState, inInterceptAction);
+        const stateUser = {state:capture, set:()=>{}, reload:HMR.reloads};
+        HMR.statesNew.set(id, stateUser);
+        console.log("interepted reducer", stateUser);
+        return capture;
+    };
+
+    const id = ReactParts.useId();
+    const [state, dispatch] = ReactParts.useReducer(intercept, argOld as Storelike);
+
+    if(!HMR.statesNew.get(id))
+    {
+        HMR.statesNew.set(id, {state:state, set:()=>{}, reload:HMR.reloads});
+    }
+
+    return [state, dispatch];
+};
+
 export * from "react-original";
-export {ProxyCreate as createElement, ProxyState as useState };
-export const isProxy = true;
-export default {...ReactParts, createElement:ProxyCreate, useState:ProxyState, isProxy:true};
+export {ProxyCreate as createElement, ProxyState as useState, ProxyReducer as useReducer };
+export default {...ReactParts, createElement:ProxyCreate, useState:ProxyState, useReducer:ProxyReducer};
