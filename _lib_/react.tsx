@@ -77,11 +77,26 @@ const ProxyState =(argNew:StateType)=>
 
 
     // do we need to account for the function set?
-    function proxySetter (inArg:StateType)
-    {
-        const stateUser = {state:inArg, set:stateSet, reload:HMR.reloads};
-        HMR.statesNew.set(id, stateUser);
-        stateSet(inArg);
+    function proxySetter ( inArg:StateType|((old:StateType)=>StateType) )
+    {   
+        const stateUser = {state:inArg as StateType, set:stateSet, reload:HMR.reloads};
+        if(typeof inArg == "function")
+        {
+            //const passedFunction = inArg;
+            stateSet((oldState:StateType)=>
+            {
+                console.log("function setter intercepted");
+                const output = inArg(oldState);
+                stateUser.state = output;
+                HMR.statesNew.set(id, stateUser);
+                return output;
+            });
+        }
+        else
+        {
+            HMR.statesNew.set(id, stateUser);
+            stateSet(inArg);            
+        }
     }
     return [stateGet, proxySetter];
 
