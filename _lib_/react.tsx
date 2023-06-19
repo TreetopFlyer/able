@@ -102,10 +102,10 @@ const ProxyState =(argNew:StateType)=>
 };
 
 type Storelike = Record<string, string>
-const ProxyReducer =(inReducer:(inState:Storelike, inAction:string)=>Storelike, inState:Storelike)=>
+const ProxyReducer =(inReducer:(inState:Storelike, inAction:string)=>Storelike, inState:Storelike, inInit?:(inState:Storelike)=>Storelike)=>
 {
     const check =  MapIndex(HMR.statesOld, HMR.statesNew.size);
-    const argOld = check ? check[1].state : inState;
+    const argOld = check ? check[1].state : (inInit ? inInit(inState) : inState);
 
     const intercept =(inInterceptState:Storelike, inInterceptAction:string)=>
     {

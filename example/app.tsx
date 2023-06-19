@@ -24,10 +24,16 @@ const reducer =(inState:Store, inAction:number)=>
     return {...inState, age:inState.age+inAction};
 }
 
+const builder =(inState:Store):Store=>
+{
+    inState.age = 100;
+    return inState;
+}
+
 export default ()=>
 {
     
-    const [Store, Dispatch] = React.useReducer(reducer, {name:"seth", age:24} as Store)
+    const [Store, Dispatch] = React.useReducer(reducer, {name:"seth", age:24} as Store, builder)
     return <CTXString.Provider value="intradestink">
         <div>
             <h1>Title!</h1>
