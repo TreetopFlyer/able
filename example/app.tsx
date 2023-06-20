@@ -4,7 +4,7 @@ const CTXString = React.createContext("lol");
 
 type StateBinding<T> = [get:T, set:React.StateUpdater<T>];
 const CTXState = React.createContext(null) as React.Context<StateBinding<number>|null>;
-const Outer =(props:{children:Preact.VNode})=>
+const Outer =(props:{children:React.JSX.Element})=>
 {
     const binding = React.useState(11);
     return <CTXState.Provider value={binding}>
@@ -35,8 +35,8 @@ export default ()=>
     
     const [Store, Dispatch] = React.useReducer(reducer, {name:"seth", age:24} as Store, builder)
     return <CTXString.Provider value="intradestink">
-        <div class="my-4">
-            <h1>Title</h1>
+        <div class="my-4 font-sans">
+            <h1 class="font-black text-xl">Title!!!!</h1>
             <h2>subtitle!</h2>
             <p>
                 <button onClick={e=>Dispatch(1)}>{Store.name}|{Store.age}?</button>

@@ -62,8 +62,8 @@ let Configuration:Configuration =
                     <div id="app"></div>
                     <script type="importmap">${JSON.stringify(inMap)}</script>
                     <script type="module">
-                        import Mount from "/_lib_/mount.tsx";
-                        Mount("#app", "@app");
+                       import Mount from "/_lib_/mount.tsx";
+                       Mount("#app", "@app");
                     </script>
                 </body>
             </html>`, {status:200, headers:{"content-type":"text/html"}});
