@@ -35,8 +35,8 @@ export default ()=>
     
     const [Store, Dispatch] = React.useReducer(reducer, {name:"seth", age:24} as Store, builder)
     return <CTXString.Provider value="intradestink">
-        <div>
-            <h1>Title!</h1>
+        <div class="my-4">
+            <h1>Title</h1>
             <h2>subtitle!</h2>
             <p>
                 <button onClick={e=>Dispatch(1)}>{Store.name}|{Store.age}?</button>

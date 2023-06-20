@@ -3,7 +3,7 @@
     "imports":
     {
         "react":"https://esm.sh/preact@10.15.1/compat",
-        "app": "./app.tsx"
+        "@app": "./app.tsx"
     },
     "tasks":
     {

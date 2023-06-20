@@ -62,10 +62,8 @@ let Configuration:Configuration =
                     <div id="app"></div>
                     <script type="importmap">${JSON.stringify(inMap)}</script>
                     <script type="module">
-                        import App from "app";
-                        import React from "react";
-                        const Wrapper =(props)=> React.createElement(App);
-                        React.render(React.createElement(Wrapper), document.querySelector("#app"))
+                        import Mount from "/_lib_/mount.tsx";
+                        Mount("#app", "@app");
                     </script>
                 </body>
             </html>`, {status:200, headers:{"content-type":"text/html"}});
@@ -76,7 +74,7 @@ let Configuration:Configuration =
         minify: true,
         jsc:
         {
-            target:"es2017",
+            target:"es2022",
             minify:
             {
                 compress: { unused: true },
