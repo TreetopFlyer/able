@@ -2,12 +2,11 @@
     "compilerOptions": { "lib": ["deno.window", "dom"] },
     "imports":
     {
-        "react":"https://esm.sh/preact@10.15.1/compat",
-        "@app": "./app.tsx"
+        "react":"https://esm.sh/preact@10.15.1/compat"
     },
     "tasks":
     {
-        "local": "deno run -A --no-lock ../local.tsx",
-        "serve": "deno run -A --no-lock ../serve.tsx"
+        "local": "deno run -A --no-lock app.tsx --dev",
+        "serve": "deno run -A --no-lock app.tsx"
     }
 }

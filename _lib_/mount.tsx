@@ -24,6 +24,42 @@ export const Shadow =(inElement:HTMLElement, inConfig?:TW.TwindUserConfig)=>
     return ShadowDiv;
 };
 
+let booted = false;
+export const Boot =async(inSettings:{App:()=>React.JSX.Element, CSS?:TW.TwindUserConfig, DOM?:string})=>
+{
+  if(booted){return;}
+  booted = true;
+
+  const settings = {CSS:{...Configure, ...inSettings.CSS||{} }, DOM:inSettings.DOM||"#app", App:inSettings.App};
+
+  console.log("Clinet boot called")
+
+  let dom = document.querySelector(settings.DOM);
+  if(!dom)
+  {
+    console.log(`element "${settings.DOM}" not found.`);
+    return false;
+  }
+
+  dom = Shadow(dom as HTMLElement, settings.CSS)
+
+  const app = React.createElement(()=> React.createElement(settings.App, null), null);
+  if(React.render)
+  {
+    React.render(app, dom);
+    return ()=>dom && React.unmountComponentAtNode(dom);
+  }
+  else
+  {
+    const reactDom = await import(`https://esm.sh/react-dom@${React.version}/client`);
+    const root = reactDom.createRoot(dom);
+    root.render(app);
+    return root.unmount;        
+  }
+
+};
+
+
 export default async(inSelector:string, inModulePath:string, inMemberApp="default", inMemberCSS="CSS"):Promise<(()=>void)|false>=>
 {
   let dom = document.querySelector(inSelector);

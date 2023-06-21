@@ -23,16 +23,16 @@ const ImportMapReload =async()=>
     ImportMap.imports = Configuration.Remap(json.imports);
 };
 
-type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>})=>void|false|Response|Promise<Response|void|false>;
+type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>}, inProxy:string)=>void|false|Response|Promise<Response|void|false>;
 type CustomRemapper = (inImports:Record<string, string>)=>Record<string, string>;
 type Configuration = {Proxy:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
 type ConfigurationArgs = {Proxy?:string, Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler, Shell?:CustomHTTPHandler, Remap?:CustomRemapper};
 let Configuration:Configuration =
 {
-    Proxy: `file://${Deno.cwd().replaceAll("\\", "/")}`,
+    Proxy: new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString(),
     Allow: "*",
     Reset: "/clear-cache",
-    Serve(inReq, inURL, inExt, inMap){},
+    Serve(inReq, inURL, inExt, inMap, inProxy){},
     Remap: (inImports)=>
     {
         Object.entries(inImports).forEach(([key, value])=>
@@ -51,8 +51,13 @@ let Configuration:Configuration =
         console.log(inImports);
         return inImports;
     },
-    Shell(inReq, inURL, inExt, inMap)
+    Shell(inReq, inURL, inExt, inMap, inProxy)
     {
+        console.log("Start app:", Deno.mainModule, "start dir", inProxy);
+        console.log("Split:", Deno.mainModule.split(inProxy) );
+
+        const parts = Deno.mainModule.split(inProxy);
+
         return new Response(
             `<!doctype html>
             <html>
@@ -62,8 +67,8 @@ let Configuration:Configuration =
                     <div id="app"></div>
                     <script type="importmap">${JSON.stringify(inMap)}</script>
                     <script type="module">
-                       import Mount from "/_lib_/mount.tsx";
-                       Mount("#app", "@app");
+                        import Mount from "/_lib_/mount.tsx";
+                        Mount("#app", "${parts[1]??"/app.tsx"}");
                     </script>
                 </body>
             </html>`, {status:200, headers:{"content-type":"text/html"}});
@@ -162,7 +167,7 @@ HTTP.serve(async(req: Request)=>
     }
 
     // allow for custom handler
-    const custom = await Configuration.Serve(req, url, ext, ImportMap);
+    const custom = await Configuration.Serve(req, url, ext, ImportMap, Configuration.Proxy);
     if(custom)
     {
         return custom;
@@ -171,26 +176,36 @@ HTTP.serve(async(req: Request)=>
     // transpileable files
     if(Transpile.Check(ext))
     {
+        let code;
+        let path;
         if(url.pathname.startsWith("/_lib_/"))
         {
-            const path = import.meta.url+"/.."+url.pathname;
-            const code = await Transpile.Fetch(path, url.pathname, true);
-            if(code)
+            if(url.pathname.endsWith("boot.tsx"))
             {
-                return new Response(code, {headers:{"content-type":"application/javascript"}});
+                path = import.meta.url+"/../_lib_/mount.tsx";
             }
+            else
+            {
+                path = import.meta.url+"/.."+url.pathname;
+            }
+            code = await Transpile.Fetch(path, url.pathname, true);
         }
         else
         {
-            const lookup = await Transpile.Fetch(Configuration.Proxy + url.pathname, url.pathname);
-            return new Response(lookup, {status:lookup?200:404, headers:{...headers, "content-type":"application/javascript"}} );            
+            path = Configuration.Proxy + url.pathname;
+            code = await Transpile.Fetch(path, url.pathname);    
         }
+
+        if(code)
+        {
+            return new Response(code, {headers:{...headers, "content-type":"application/javascript"}} );     
+        } 
     }
 
     // custom page html
     if(!ext)
     {
-        const shell = await Configuration.Shell(req, url, ext, ImportMap);
+        const shell = await Configuration.Shell(req, url, ext, ImportMap, Configuration.Proxy);
         if(shell)
         {
             return shell;
