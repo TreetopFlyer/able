@@ -194,14 +194,17 @@ HTTP.serve(async(req: Request)=>
         let path;
         if(url.pathname.startsWith("/_lib_/"))
         {
-            if(url.pathname.startsWith("/_lib_/boot"))
+            const clipRoot = import.meta.url.substring(0, import.meta.url.lastIndexOf("/"));
+            const clipPath = url.pathname.substring(url.pathname.indexOf("/", 1));
+            if(clipPath.startsWith("/boot-"))
             {
-                path = import.meta.url+"/../_lib_/boot-browser.tsx";
+                path = clipRoot+"/boot-browser.tsx";
             }
             else
             {
-                path = import.meta.url+"/.."+url.pathname;
+                path = clipRoot + clipPath;
             }
+            console.log("transpiling", path);
             code = await Transpile.Fetch(path, url.pathname, true);
         }
         else
