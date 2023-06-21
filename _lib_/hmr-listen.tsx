@@ -1,5 +1,4 @@
-import { type StateCapture } from "./react.tsx";
-
+import { type StateCapture } from "./hmr-react.tsx";
 
 const FileListeners = new Map() as Map<string, Array<(module:unknown)=>void>>;
 export const FileListen =(inPath:string, inHandler:()=>void)=>
@@ -20,7 +19,6 @@ Socket.addEventListener('message', async(event:{data:string})=>
 });
 Socket.addEventListener("error", ()=>{clearInterval(SocketTimer); console.log("HMR socket lost")})
 const SocketTimer = setInterval(()=>{Socket.send("ping")}, 5000);
-
 
 /*
 
@@ -46,9 +44,7 @@ When there is an HMR update:
 - statesNew is moved into *statesOld*
 - statesNew is cleared.
 
-
 */
-
 
 const HMR =
 {

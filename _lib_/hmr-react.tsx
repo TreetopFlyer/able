@@ -1,5 +1,5 @@
 import * as ReactParts from "react-original";
-import { HMR } from "./hmr.tsx";
+import { HMR } from "./hmr-listen.tsx";
 
 export type StateType = boolean|number|string|Record<string, string>
 export type StateCapture = {state:StateType, set:ReactParts.StateUpdater<StateType>, reload:number};

@@ -74,12 +74,14 @@ let Configuration:Configuration =
             `<!doctype html>
             <html>
                 <head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+                    <meta charset="utf-8"/>
                 </head>
                 <body>
                     <div id="app"></div>
                     <script type="importmap">${JSON.stringify(inMap)}</script>
                     <script type="module">
-                        import Mount from "/_lib_/mount.tsx";
+                        import Mount from "/_lib_/boot-browser.tsx";
                         Mount("#app", "${parts[1]??"/app.tsx"}");
                     </script>
                 </body>
@@ -192,9 +194,9 @@ HTTP.serve(async(req: Request)=>
         let path;
         if(url.pathname.startsWith("/_lib_/"))
         {
-            if(url.pathname.endsWith("boot.tsx"))
+            if(url.pathname.startsWith("/_lib_/boot"))
             {
-                path = import.meta.url+"/../_lib_/mount.tsx";
+                path = import.meta.url+"/../_lib_/boot-browser.tsx";
             }
             else
             {
