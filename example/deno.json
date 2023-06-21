@@ -1,0 +1,13 @@
+{
+    "compilerOptions": { "lib": ["deno.window", "dom"] },
+    "imports":
+    {
+        "react":"https://esm.sh/preact@10.15.1/compat",
+        "@able/":"http://localhost:4507/_lib_/"
+    },
+    "tasks":
+    {
+        "local": "deno run -A --no-lock --reload=http://localhost:4507 app.tsx --dev",
+        "serve": "deno run -A --no-lock --reload=http://localhost:4507 app.tsx"
+    }
+}
