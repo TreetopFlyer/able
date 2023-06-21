@@ -20,7 +20,27 @@ const ImportMapReload =async()=>
         console.log(`error reading deno config "${path}" message:"${e}"`);
         return;
     }
+
+    Object.entries(json.imports).forEach(([key, value])=>
+    {
+        if(value.startsWith("./"))
+        {
+            json.imports[key] = value.substring(1);
+        }
+    });
+    if(!json.imports["@able/"])
+    {
+        console.log(`"@able/" specifier not defined in import map`);
+    }
+    json.imports["@able/"] = "/_lib_/";
+
+    if(!json.imports["react"])
+    {
+        console.log(`"react" specifier not defined in import map`);
+    }
+
     ImportMap.imports = Configuration.Remap(json.imports);
+    console.log(ImportMap.imports);
 };
 
 type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>}, inProxy:string)=>void|false|Response|Promise<Response|void|false>;
@@ -35,20 +55,12 @@ let Configuration:Configuration =
     Serve(inReq, inURL, inExt, inMap, inProxy){},
     Remap: (inImports)=>
     {
-        Object.entries(inImports).forEach(([key, value])=>
-        {
-            if(value.startsWith("./"))
-            {
-                inImports[key] = value.substring(1);
-            }
-        });
-        const reactURL = inImports["react"] ?? console.log("React is not defined in imports");
+        const reactURL = inImports["react"];
         const setting = Configuration.SWCOp?.jsc?.transform?.react;
-        if(setting)
+        if(setting && reactURL)
         {
             setting.importSource = reactURL;
         }
-        console.log(inImports);
         return inImports;
     },
     Shell(inReq, inURL, inExt, inMap, inProxy)

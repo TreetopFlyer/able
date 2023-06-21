@@ -20,18 +20,8 @@ Configure({
     },
     Remap: (inImports)=>
     {
-        console.log("running remapper");
-        Object.entries(inImports).forEach(([key, value])=>
-        {
-            if(value.startsWith("./"))
-            {
-                inImports[key] = value.substring(1);
-            }
-        });
-
         inImports["react-original"] = inImports["react"];
         inImports["react"] = "/_lib_/react.tsx";
-        console.log(inImports);
         return inImports;
     },
     async Serve(inReq, inURL, inExt, inMap, inProxy)

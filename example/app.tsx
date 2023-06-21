@@ -1,4 +1,4 @@
-import "../_lib_/boot.tsx";
+import "@able/boot.tsx";
 import React from "react";
 
 const CTXString = React.createContext("lol");
@@ -37,7 +37,7 @@ export default ()=>
     const [Store, Dispatch] = React.useReducer(reducer, {name:"seth", age:24} as Store, builder)
     return <CTXString.Provider value="intradestink">
         <div class="my-4 font-sans">
-            <h1 class="font-black text-xl text-red-500">Title?</h1>
+            <h1 class="font-black text-xl text-red-500">Title????</h1>
             <h2>subtitle!</h2>
             <p>
                 <button onClick={e=>Dispatch(1)}>{Store.name}|{Store.age}?</button>
