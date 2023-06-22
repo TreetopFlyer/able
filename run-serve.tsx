@@ -39,12 +39,12 @@ const ImportMapReload =async()=>
         console.log(`"react" specifier not defined in import map`);
     }
 
-    ImportMap.imports = Configuration.Remap(json.imports);
+    ImportMap.imports = Configuration.Remap(json.imports, Configuration);
     console.log(ImportMap.imports);
 };
 
-type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>}, inProxy:string)=>void|false|Response|Promise<Response|void|false>;
-type CustomRemapper = (inImports:Record<string, string>)=>Record<string, string>;
+type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>}, inConfig:Configuration)=>void|false|Response|Promise<Response|void|false>;
+type CustomRemapper = (inImports:Record<string, string>, inConfig:Configuration)=>Record<string, string>;
 type Configuration = {Proxy:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
 type ConfigurationArgs = {Proxy?:string, Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler, Shell?:CustomHTTPHandler, Remap?:CustomRemapper};
 let Configuration:Configuration =
@@ -53,7 +53,7 @@ let Configuration:Configuration =
     Allow: "*",
     Reset: "/clear-cache",
     Serve(inReq, inURL, inExt, inMap, inProxy){},
-    Remap: (inImports)=>
+    Remap: (inImports, inConfig)=>
     {
         const reactURL = inImports["react"];
         const setting = Configuration.SWCOp?.jsc?.transform?.react;
@@ -63,12 +63,12 @@ let Configuration:Configuration =
         }
         return inImports;
     },
-    Shell(inReq, inURL, inExt, inMap, inProxy)
+    Shell(inReq, inURL, inExt, inMap, inConfig)
     {
-        console.log("Start app:", Deno.mainModule, "start dir", inProxy);
-        console.log("Split:", Deno.mainModule.split(inProxy) );
+        console.log("Start app:", Deno.mainModule, "start dir", inConfig.Proxy);
+        console.log("Split:", Deno.mainModule.split(inConfig.Proxy) );
 
-        const parts = Deno.mainModule.split(inProxy);
+        const parts = Deno.mainModule.split(inConfig.Proxy);
 
         return new Response(
             `<!doctype html>
@@ -181,7 +181,7 @@ HTTP.serve(async(req: Request)=>
     }
 
     // allow for custom handler
-    const custom = await Configuration.Serve(req, url, ext, ImportMap, Configuration.Proxy);
+    const custom = await Configuration.Serve(req, url, ext, ImportMap, Configuration);
     if(custom)
     {
         return custom;
@@ -222,7 +222,7 @@ HTTP.serve(async(req: Request)=>
     // custom page html
     if(!ext)
     {
-        const shell = await Configuration.Shell(req, url, ext, ImportMap, Configuration.Proxy);
+        const shell = await Configuration.Shell(req, url, ext, ImportMap, Configuration);
         if(shell)
         {
             return shell;

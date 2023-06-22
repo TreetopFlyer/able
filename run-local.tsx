@@ -18,17 +18,17 @@ Configure({
             }
         }
     },
-    Remap: (inImports)=>
+    Remap: (inImports, inConfig)=>
     {
         inImports["react-original"] = inImports["react"];
         inImports["react"] = "/_lib_/hmr-react.tsx";
         return inImports;
     },
-    async Serve(inReq, inURL, inExt, inMap, inProxy)
+    async Serve(inReq, inURL, inExt, inMap, inConfig)
     {
         if(Transpile.Check(inExt) && !inURL.searchParams.get("reload") && !inURL.pathname.startsWith("/_lib_/"))
         {
-            const imp = await import(inProxy+inURL.pathname);
+            const imp = await import(inConfig.Proxy+inURL.pathname);
             const members = [];
             for( const key in imp ) { members.push(key); }
 
