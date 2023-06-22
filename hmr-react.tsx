@@ -68,7 +68,6 @@ const ProxyState =(argNew:StateType)=>
                 // this is a switch/ui change, not a HMR reload change
                 const oldState = MapIndex(HMR.statesOld, HMR.statesNew.size-1);
                 oldState && HMR.statesOld.set(oldState[0], {...oldState[1], state:argNew});
-                console.log("check: ui-invoked")
             }
 
             HMR.statesNew.delete(id);
@@ -112,7 +111,6 @@ const ProxyReducer =(inReducer:(inState:Storelike, inAction:string)=>Storelike, 
         const capture = inReducer(inInterceptState, inInterceptAction);
         const stateUser = {state:capture, set:()=>{}, reload:HMR.reloads};
         HMR.statesNew.set(id, stateUser);
-        console.log("interepted reducer", stateUser);
         return capture;
     };
 

@@ -1,7 +1,7 @@
 import {Configure, Transpile, Extension} from "./run-serve.tsx";
 
 const SocketsLive:Set<WebSocket> = new Set();
-const SocketsSend =(inData:string)=>{ console.log(inData); for (const socket of SocketsLive){ socket.send(inData); } }
+const SocketsSend =(inData:string)=>{ for (const socket of SocketsLive){ socket.send(inData); } }
 
 Configure({
     SWCOp:
@@ -97,4 +97,4 @@ const Watcher =async()=>
     }
 }
 
-Watcher().then(()=>console.log("done watching"));
+Watcher();

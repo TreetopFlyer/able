@@ -52,7 +52,7 @@ let Configuration:Configuration =
     Proxy: new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString(),
     Allow: "*",
     Reset: "/clear-cache",
-    Serve(inReq, inURL, inExt, inMap, inProxy){},
+    Serve(inReq, inURL, inExt, inMap, inConfig){},
     Remap: (inImports, inConfig)=>
     {
         const reactURL = inImports["react"];
@@ -65,9 +65,6 @@ let Configuration:Configuration =
     },
     Shell(inReq, inURL, inExt, inMap, inConfig)
     {
-        console.log("Start app:", Deno.mainModule, "start dir", inConfig.Proxy);
-        console.log("Split:", Deno.mainModule.split(inConfig.Proxy) );
-
         const parts = Deno.mainModule.split(inConfig.Proxy);
 
         return new Response(
@@ -204,7 +201,6 @@ HTTP.serve(async(req: Request)=>
             {
                 path = clipRoot + clipPath;
             }
-            console.log("transpiling", path);
             code = await Transpile.Fetch(path, url.pathname, true);
         }
         else
