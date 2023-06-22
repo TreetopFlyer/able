@@ -21,19 +21,19 @@ Configure({
     Remap: (inImports, inConfig)=>
     {
         inImports["react-original"] = inImports["react"];
-        inImports["react"] = "/_lib_/hmr-react.tsx";
+        inImports["react"] = `${inConfig.Spoof}/hmr-react.tsx`;
         return inImports;
     },
     async Serve(inReq, inURL, inExt, inMap, inConfig)
     {
-        if(Transpile.Check(inExt) && !inURL.searchParams.get("reload") && !inURL.pathname.startsWith("/_lib_/"))
+        if(Transpile.Check(inExt) && !inURL.searchParams.get("reload") && !inURL.pathname.startsWith(inConfig.Spoof+"/"))
         {
             const imp = await import(inConfig.Proxy+inURL.pathname);
             const members = [];
             for( const key in imp ) { members.push(key); }
 
             const code =`
-import {FileListen} from "/_lib_/hmr-listen.tsx";
+import {FileListen} from "${inConfig.Spoof}/hmr-listen.tsx";
 import * as Import from "${inURL.pathname}?reload=0";
 ${ members.map(m=>`let proxy_${m} = Import.${m}; export { proxy_${m} as ${m} };`).join("\n") }
 FileListen("${inURL.pathname}", (updatedModule)=>

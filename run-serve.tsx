@@ -28,11 +28,13 @@ const ImportMapReload =async()=>
             json.imports[key] = value.substring(1);
         }
     });
-    if(!json.imports["@able/"])
+
+    const mapKey = (Configuration.Spoof.startsWith("/") ? Configuration.Spoof.substring(1) : Configuration.Spoof)+"/";
+    if(!json.imports[mapKey])
     {
-        console.log(`"@able/" specifier not defined in import map`);
+        console.log(`"${mapKey}" specifier not defined in import map`);
     }
-    json.imports["@able/"] = "/_lib_/";
+    json.imports[mapKey] = Configuration.Spoof+"/";
 
     if(!json.imports["react"])
     {
@@ -45,13 +47,14 @@ const ImportMapReload =async()=>
 
 type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>}, inConfig:Configuration)=>void|false|Response|Promise<Response|void|false>;
 type CustomRemapper = (inImports:Record<string, string>, inConfig:Configuration)=>Record<string, string>;
-type Configuration = {Proxy:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
-type ConfigurationArgs = {Proxy?:string, Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler, Shell?:CustomHTTPHandler, Remap?:CustomRemapper};
+type Configuration = {Proxy:string, Spoof:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
+type ConfigurationArgs = {Proxy?:string, Spoof?:string, Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler, Shell?:CustomHTTPHandler, Remap?:CustomRemapper};
 let Configuration:Configuration =
 {
     Proxy: new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString(),
     Allow: "*",
     Reset: "/clear-cache",
+    Spoof: "/@able",
     Serve(inReq, inURL, inExt, inMap, inConfig){},
     Remap: (inImports, inConfig)=>
     {
@@ -78,7 +81,7 @@ let Configuration:Configuration =
                     <div id="app"></div>
                     <script type="importmap">${JSON.stringify(inMap)}</script>
                     <script type="module">
-                        import Mount from "/_lib_/boot-browser.tsx";
+                        import Mount from "${inConfig.Spoof}/boot-browser.tsx";
                         Mount("#app", "${parts[1]??"/app.tsx"}");
                     </script>
                 </body>
@@ -189,7 +192,7 @@ HTTP.serve(async(req: Request)=>
     {
         let code;
         let path;
-        if(url.pathname.startsWith("/_lib_/"))
+        if(url.pathname.startsWith(Configuration.Spoof+"/"))
         {
             const clipRoot = import.meta.url.substring(0, import.meta.url.lastIndexOf("/"));
             const clipPath = url.pathname.substring(url.pathname.indexOf("/", 1));
