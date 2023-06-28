@@ -55,7 +55,16 @@ let Configuration:Configuration =
     Allow: "*",
     Reset: "/clear-cache",
     Spoof: "/@able",
-    Serve(inReq, inURL, inExt, inMap, inConfig){},
+    async Serve(inReq, inURL, inExt, inMap, inConfig)
+    {
+        if(inReq.headers.get("user-agent")?.startsWith("Deno"))
+        {
+            const file = await fetch(inConfig.Proxy + inURL.pathname);
+            const text = await file.text();
+
+            return new Response(Transpile.Patch(text), {headers:{"content-type":"application/javascript"}} );   
+        }
+    },
     Remap: (inImports, inConfig)=>
     {
         const reactURL = inImports["react"];
@@ -89,6 +98,9 @@ let Configuration:Configuration =
     },
     SWCOp:
     {
+        env:{
+            dynamicImport:false
+        },
         sourceMaps: false,
         minify: true,
         jsc:
@@ -126,6 +138,25 @@ export const Transpile =
         this.Cache.clear();
         ImportMapReload();
         return size;
+    },
+    Patch(inText)
+    {
+        const regex = /(?<![\w.])import\(([^)]+)(?!import\b)\)/g;
+        const staticImports = [];
+
+        let match;
+        let convertedBody = inText;
+        while ((match = regex.exec(inText)))
+        {
+            const importStatement = match[0];
+            const importContent = match[1];
+            const moduleName = `_dyn_${staticImports.length}`;
+
+            staticImports.push(`import ${moduleName} from ${importContent};`);
+            convertedBody = convertedBody.replace(importStatement, `Promise.resolve(${moduleName})`);
+        }
+
+        return staticImports.join("\n") + convertedBody;
     },
     Fetch: async function(inPath:string, inKey:string, inCheckCache=true)
     {
