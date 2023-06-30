@@ -1,4 +1,4 @@
-import "../serve.tsx";
+import "./run-serve.tsx";
 
 Deno.args.forEach(arg=>
 {
@@ -11,5 +11,5 @@ Deno.args.forEach(arg=>
 
 if(Deno.env.get("dev"))
 {
-  await import("../local.tsx");
+  await import("./run-local.tsx");
 }

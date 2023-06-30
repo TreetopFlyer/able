@@ -1,4 +1,4 @@
-import "@able/boot.tsx";
+import "@able/boot-server.tsx";
 import React from "react";
 
 const CTXString = React.createContext("lol");
