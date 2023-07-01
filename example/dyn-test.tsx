@@ -1,6 +1,9 @@
 
+import * as Util from "@able/";
+import * as React from "react";
+import {createElement} from "react/client";
 
-import('https://esm.sh/react').then((module) => {
+import('react').then((module) => {
   console.log(module);
 });
 

@@ -57,12 +57,17 @@ let Configuration:Configuration =
     Spoof: "/@able",
     async Serve(inReq, inURL, inExt, inMap, inConfig)
     {
-        if(inReq.headers.get("user-agent")?.startsWith("Deno"))
+        if( inReq.headers.get("user-agent")?.startsWith("Deno") || inURL.searchParams.get("deno") )
         {
+            console.log("patching...")
             const file = await fetch(inConfig.Proxy + inURL.pathname);
             const text = await file.text();
 
-            return new Response(Transpile.Patch(text), {headers:{"content-type":"application/javascript"}} );   
+            return new Response(Transpile.Patch(text, inMap), {headers:{"content-type":"application/javascript"}} );   
+        }
+        else
+        {
+            console.log("not a deno-able file")
         }
     },
     Remap: (inImports, inConfig)=>
@@ -139,20 +144,60 @@ export const Transpile =
         ImportMapReload();
         return size;
     },
-    Patch(inText)
+    /**
+     * Converts dynamic module imports in to static, also can resolve paths with an import map
+     */
+    Patch(inText:string, inMap?:DenoConfig)
     {
-        const regex = /(?<![\w.])import\(([^)]+)(?!import\b)\)/g;
-        const staticImports = [];
-
-        let match;
+        const remap = inMap ? (inPath:string)=>
+        {
+            const match = inMap.imports[inPath];
+            if(match)
+            {
+                return match;
+            }
+            else if(inPath.includes("/"))
+            {
+                let bestKey = "";
+                let bestLength = 0;
+                Object.keys(inMap.imports).forEach((key, i, arr)=>
+                {
+                    if(key.endsWith("/") && inPath.startsWith(key) && key.length > bestLength)
+                    {
+                        bestKey = key;
+                        bestLength = bestLength;
+                    }
+                });
+                if(bestKey)
+                {
+                    return inMap.imports[bestKey]+inPath.substring(bestKey.length);
+                }
+            }
+            return inPath;
+        }
+        : (inPath:string)=>inPath;
+        let match, regex;
         let convertedBody = inText;
+
+        // remap static imports
+        regex = /from\s+(['"`])(.*?)\1/g;
+        while ((match = regex.exec(inText)))
+        {
+          const importStatement = match[0];
+          const importPath = match[2];
+          convertedBody = convertedBody.replace(importStatement, `from "${remap(importPath)}"`);
+        }
+
+        // convert dynamic imports into static (to work around deno deploy)
+        const staticImports = [];
+        regex = /(?<![\w.])import\(([^)]+)(?!import\b)\)/g;
         while ((match = regex.exec(inText)))
         {
             const importStatement = match[0];
-            const importContent = match[1];
-            const moduleName = `_dyn_${staticImports.length}`;
+            const importPath = remap(match[1].substring(1, match[1].length-1));
+            const moduleName:string = `_dyn_${staticImports.length}`;
 
-            staticImports.push(`import ${moduleName} from ${importContent};`);
+            staticImports.push(`import ${moduleName} from ${importPath};`);
             convertedBody = convertedBody.replace(importStatement, `Promise.resolve(${moduleName})`);
         }
 
