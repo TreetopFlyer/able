@@ -59,15 +59,9 @@ let Configuration:Configuration =
     {
         if( inReq.headers.get("user-agent")?.startsWith("Deno") || inURL.searchParams.get("deno") )
         {
-            console.log("patching...")
             const file = await fetch(inConfig.Proxy + inURL.pathname);
             const text = await file.text();
-
-            return new Response(Transpile.Patch(text, inMap), {headers:{"content-type":"application/javascript"}} );   
-        }
-        else
-        {
-            console.log("not a deno-able file")
+            return new Response(Transpile.Patch(text, "deno-"+inURL.pathname, inMap), {headers:{"content-type":"application/javascript"}} );   
         }
     },
     Remap: (inImports, inConfig)=>
@@ -147,8 +141,18 @@ export const Transpile =
     /**
      * Converts dynamic module imports in to static, also can resolve paths with an import map
      */
-    Patch(inText:string, inMap?:DenoConfig)
+    Patch(inText:string, inKey:string|false = false, inMap?:DenoConfig)
     {
+
+        if(inKey)
+        {
+            const check = this.Cache.get(inKey);
+            if(check)
+            {
+                return check;
+            }
+        }
+
         const remap = inMap ? (inPath:string)=>
         {
             const match = inMap.imports[inPath];
@@ -200,8 +204,10 @@ export const Transpile =
             staticImports.push(`import ${moduleName} from ${importPath};`);
             convertedBody = convertedBody.replace(importStatement, `Promise.resolve(${moduleName})`);
         }
-
-        return staticImports.join("\n") + convertedBody;
+        convertedBody = staticImports.join("\n") + convertedBody;
+        
+        inKey && this.Cache.set(inKey, convertedBody);
+        return convertedBody;
     },
     Fetch: async function(inPath:string, inKey:string, inCheckCache=true)
     {
