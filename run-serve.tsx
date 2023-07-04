@@ -4,6 +4,7 @@ import * as SWCW from "https://esm.sh/@swc/wasm-web@1.3.62";
 
 type DenoConfig = {imports:Record<string, string>};
 const ImportMap:DenoConfig = {imports:{}};
+let ImportMapOriginal = {};
 const ImportMapReload =async()=>
 {
     let json:DenoConfig;
@@ -14,6 +15,7 @@ const ImportMapReload =async()=>
         json = await resp.json();
         if(!json?.imports)
         { throw new Error("imports not specified in deno.json") }
+        ImportMapOriginal = json;
     }
     catch(e)
     {
@@ -29,12 +31,14 @@ const ImportMapReload =async()=>
         }
     });
 
+    /*
     const mapKey = (Configuration.Spoof.startsWith("/") ? Configuration.Spoof.substring(1) : Configuration.Spoof)+"/";
     if(!json.imports[mapKey])
     {
         console.log(`"${mapKey}" specifier not defined in import map`);
     }
     json.imports[mapKey] = Configuration.Spoof+"/";
+    */
 
     if(!json.imports["react"])
     {
@@ -47,7 +51,7 @@ const ImportMapReload =async()=>
 
 type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>}, inConfig:Configuration)=>void|false|Response|Promise<Response|void|false>;
 type CustomRemapper = (inImports:Record<string, string>, inConfig:Configuration)=>Record<string, string>;
-type Configuration = {Proxy:string, Spoof:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
+type Configuration     = {Proxy:string, Spoof:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
 type ConfigurationArgs = {Proxy?:string, Spoof?:string, Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler, Shell?:CustomHTTPHandler, Remap?:CustomRemapper};
 let Configuration:Configuration =
 {
@@ -59,9 +63,11 @@ let Configuration:Configuration =
     {
         if( inReq.headers.get("user-agent")?.startsWith("Deno") || inURL.searchParams.get("deno") )
         {
-            const file = await fetch(inConfig.Proxy + inURL.pathname);
-            const text = await file.text();
-            return new Response(Transpile.Patch(text, "deno-"+inURL.pathname, inMap), {headers:{"content-type":"application/javascript"}} );   
+            if(inExt && Extension(inExt))
+            {
+                const text = await Transpile.Patch(inConfig.Proxy + inURL.pathname, "deno-"+inURL.pathname, inMap);
+                return new Response(text, {headers:{"content-type":"application/javascript"}} );   
+            }
         }
     },
     Remap: (inImports, inConfig)=>
@@ -141,16 +147,15 @@ export const Transpile =
     /**
      * Converts dynamic module imports in to static, also can resolve paths with an import map
      */
-    Patch(inText:string, inKey:string|false = false, inMap?:DenoConfig)
+    async Patch(inPath:string, inKey:string, inMap?:DenoConfig)
     {
+        const file = await fetch(inPath);
+        const text = await file.text();
 
-        if(inKey)
+        const check = this.Cache.get(inKey);
+        if(check)
         {
-            const check = this.Cache.get(inKey);
-            if(check)
-            {
-                return check;
-            }
+            return check;
         }
 
         const remap = inMap ? (inPath:string)=>
@@ -181,11 +186,11 @@ export const Transpile =
         }
         : (inPath:string)=>inPath;
         let match, regex;
-        let convertedBody = inText;
+        let convertedBody = text;
 
         // remap static imports
         regex = /from\s+(['"`])(.*?)\1/g;
-        while ((match = regex.exec(inText)))
+        while ((match = regex.exec(text)))
         {
           const importStatement = match[0];
           const importPath = match[2];
@@ -195,7 +200,7 @@ export const Transpile =
         // convert dynamic imports into static (to work around deno deploy)
         const staticImports = [];
         regex = /(?<![\w.])import\(([^)]+)(?!import\b)\)/g;
-        while ((match = regex.exec(inText)))
+        while ((match = regex.exec(text)))
         {
             const importStatement = match[0];
             const importPath = remap(match[1].substring(1, match[1].length-1));
@@ -209,7 +214,7 @@ export const Transpile =
         inKey && this.Cache.set(inKey, convertedBody);
         return convertedBody;
     },
-    Fetch: async function(inPath:string, inKey:string, inCheckCache=true)
+    async Fetch(inPath:string, inKey:string, inCheckCache=true)
     {
         const check = this.Cache.get(inPath);
         if(check && inCheckCache)
