@@ -49,15 +49,6 @@ const ImportMapReload =async()=>
         }
     });
 
-    /*
-    const mapKey = (Configuration.Spoof.startsWith("/") ? Configuration.Spoof.substring(1) : Configuration.Spoof)+"/";
-    if(!json.imports[mapKey])
-    {
-        console.log(`"${mapKey}" specifier not defined in import map`);
-    }
-    json.imports[mapKey] = Configuration.Spoof+"/";
-    */
-
     if(!json.imports["react"])
     {
         console.log(`"react" specifier not defined in import map`);
@@ -69,14 +60,13 @@ const ImportMapReload =async()=>
 
 type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>}, inConfig:Configuration)=>void|false|Response|Promise<Response|void|false>;
 type CustomRemapper = (inImports:Record<string, string>, inConfig:Configuration)=>Record<string, string>;
-type Configuration     = {Proxy:string, Spoof:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
-type ConfigurationArgs = {Proxy?:string, Spoof?:string, Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler, Shell?:CustomHTTPHandler, Remap?:CustomRemapper};
+type Configuration     = {Proxy:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
+type ConfigurationArgs = {Proxy?:string, Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler, Shell?:CustomHTTPHandler, Remap?:CustomRemapper};
 let Configuration:Configuration =
 {
     Proxy: new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString(),
     Allow: "*",
     Reset: "/clear-cache",
-    Spoof: "/@able",
     async Serve(inReq, inURL, inExt, inMap, inConfig){},
     Remap: (inImports, inConfig)=>
     {

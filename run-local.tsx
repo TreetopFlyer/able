@@ -26,7 +26,7 @@ Configure({
     },
     async Serve(inReq, inURL, inExt, inMap, inConfig)
     {
-        if(Transpile.Check(inExt) && !inURL.searchParams.get("reload") && !inURL.pathname.startsWith(inConfig.Spoof+"/"))
+        if(Transpile.Check(inExt) && !inURL.searchParams.get("reload"))
         {
             const imp = await import(inConfig.Proxy+inURL.pathname);
             const members = [];
