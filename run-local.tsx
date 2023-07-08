@@ -21,7 +21,7 @@ Configure({
     Remap: (inImports, inConfig)=>
     {
         inImports["react-original"] = inImports["react"];
-        inImports["react"] = `${inConfig.Spoof}/hmr-react.tsx`;
+        inImports["react"] = import.meta.resolve(`./hmr-react.tsx`);
         return inImports;
     },
     async Serve(inReq, inURL, inExt, inMap, inConfig)
@@ -33,7 +33,7 @@ Configure({
             for( const key in imp ) { members.push(key); }
 
             const code =`
-import {FileListen} from "${inConfig.Spoof}/hmr-listen.tsx";
+import {FileListen} from "${import.meta.resolve(`./hmr-listen.tsx`)}";
 import * as Import from "${inURL.pathname}?reload=0";
 ${ members.map(m=>`let proxy_${m} = Import.${m}; export { proxy_${m} as ${m} };`).join("\n") }
 FileListen("${inURL.pathname}", (updatedModule)=>

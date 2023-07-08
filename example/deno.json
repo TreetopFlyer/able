@@ -3,11 +3,11 @@
     "imports":
     {
         "react":"https://esm.sh/preact@10.15.1/compat",
-        "@able/":"http://localhost:4507/"
+        "@able/":"http://localhost:8000/"
     },
     "tasks":
     {
-        "local": "deno run -A --no-lock --reload=http://localhost:4507 app.tsx --dev",
-        "serve": "deno run -A --no-lock --reload=http://localhost:4507 app.tsx"
+        "local": "deno run -A --no-lock --reload app.tsx --dev",
+        "serve": "deno run -A --no-lock --reload app.tsx"
     }
 }

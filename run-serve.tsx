@@ -1,6 +1,24 @@
 import * as MIME from "https://deno.land/std@0.180.0/media_types/mod.ts";
-import * as HTTP from "https://deno.land/std@0.177.0/http/server.ts";
 import * as SWCW from "https://esm.sh/@swc/wasm-web@1.3.62";
+
+
+Deno.args.forEach(arg=>
+{
+    if(arg.startsWith("--"))
+    {
+        const kvp = arg.substring(2).split("=");
+        Deno.env.set(kvp[0], kvp[1] || "true");
+    }
+});
+
+const urls = {
+    Cwd: new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString(),
+    App: Deno.mainModule,
+    Mod: import.meta.url,
+    Look: import.meta.resolve("./boot.tsx")
+};
+
+console.log(JSON.stringify(urls, null, " "));
 
 type DenoConfig = {imports:Record<string, string>};
 const ImportMap:DenoConfig = {imports:{}};
@@ -59,17 +77,7 @@ let Configuration:Configuration =
     Allow: "*",
     Reset: "/clear-cache",
     Spoof: "/@able",
-    async Serve(inReq, inURL, inExt, inMap, inConfig)
-    {
-        if( inReq.headers.get("user-agent")?.startsWith("Deno") || inURL.searchParams.get("deno") )
-        {
-            if(inExt && Extension(inExt))
-            {
-                const text = await Transpile.Patch(inConfig.Proxy + inURL.pathname, "deno-"+inURL.pathname, inMap);
-                return new Response(text, {headers:{"content-type":"application/javascript"}} );   
-            }
-        }
-    },
+    async Serve(inReq, inURL, inExt, inMap, inConfig){},
     Remap: (inImports, inConfig)=>
     {
         const reactURL = inImports["react"];
@@ -95,17 +103,14 @@ let Configuration:Configuration =
                     <div id="app"></div>
                     <script type="importmap">${JSON.stringify(inMap)}</script>
                     <script type="module">
-                        import Mount from "${inConfig.Spoof}/boot-browser.tsx";
-                        Mount("#app", "${parts[1]??"/app.tsx"}");
+                        import Mount from "${import.meta.resolve("./boot.tsx")}";
+                        Mount("#app", document.location.origin+"${parts[1]??"/app.tsx"}");
                     </script>
                 </body>
             </html>`, {status:200, headers:{"content-type":"text/html"}});
     },
     SWCOp:
     {
-        env:{
-            dynamicImport:false
-        },
         sourceMaps: false,
         minify: true,
         jsc:
@@ -149,13 +154,21 @@ export const Transpile =
      */
     async Patch(inPath:string, inKey:string, inMap?:DenoConfig)
     {
-        const file = await fetch(inPath);
-        const text = await file.text();
-
         const check = this.Cache.get(inKey);
         if(check)
         {
             return check;
+        }
+
+        let file, text;
+        try
+        {
+            file = await fetch(inPath);
+            text = await file.text();
+        }
+        catch(e)
+        {
+            return false;
         }
 
         const remap = inMap ? (inPath:string)=>
@@ -240,6 +253,19 @@ export const Transpile =
     }
 };
 
+
+export const ExtensionPrefix =(string:string, suffix:string)=>
+{
+    const lastDotIndex = string.lastIndexOf(".");
+    if (lastDotIndex === -1) {
+        return string;
+    }
+    
+    const prefix = string.substring(0, lastDotIndex);
+    const suffixString = string.substring(lastDotIndex + 1);
+    return prefix + "." + suffix + "." + suffixString;
+};
+
 export const Extension =(inPath:string)=>
 {
     const posSlash = inPath.lastIndexOf("/");
@@ -255,7 +281,7 @@ export const Configure =(config:ConfigurationArgs)=>
 
 await ImportMapReload();
 await SWCW.default();
-HTTP.serve(async(req: Request)=>
+const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(req: Request)=>
 {
     const url:URL = new URL(req.url);
     const ext = Extension(url.pathname);
@@ -279,19 +305,30 @@ HTTP.serve(async(req: Request)=>
     {
         let code;
         let path;
-        if(url.pathname.startsWith(Configuration.Spoof+"/"))
+        let file;
+        if( req.headers.get("user-agent")?.startsWith("Deno") || url.searchParams.has("deno") )
         {
-            const clipRoot = import.meta.url.substring(0, import.meta.url.lastIndexOf("/"));
-            const clipPath = url.pathname.substring(url.pathname.indexOf("/", 1));
-            if(clipPath.startsWith("/boot-"))
+            try
             {
-                path = clipRoot+"/boot-browser.tsx";
+                path = Configuration.Proxy + ExtensionPrefix(url.pathname, "deno");
+                console.log("looking for", path);
+                file = await fetch(path) as Response;
+                if(file.ok)
+                {
+                    code = await file.text();
+                }
+                else
+                {
+                    throw new Error("404")
+                }
             }
-            else
+            catch(e)
             {
-                path = clipRoot + clipPath;
+                path = Configuration.Proxy + url.pathname;
+                console.log("falling back to", path);
+                file = await fetch(path);
+                code = await file.text();
             }
-            code = await Transpile.Fetch(path, url.pathname, true);
         }
         else
         {

@@ -1,4 +1,4 @@
-import "@able/boot-server.tsx";
+import "http://localhost:1234/boot.tsx";
 import React from "react";
 
 const CTXString = React.createContext("lol");
@@ -38,7 +38,7 @@ export default ()=>
     return <CTXString.Provider value="intradestink">
         <div class="my-4 font-sans">
             <h1 class="font-black text-xl text-red-500">Title????</h1>
-            <h2>subtitle!</h2>
+            <h2 class="p-4">subtitle!!!!</h2>
             <p>
                 <button onClick={e=>Dispatch(1)}>{Store.name}|{Store.age}?</button>
             </p>

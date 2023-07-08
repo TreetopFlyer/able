@@ -13,7 +13,7 @@ Socket.addEventListener('message', async(event:{data:string})=>
 {
     // When a file changes, dynamically re-import it to get the updated members
     // send the updated members to any listeners for that file
-    const reImport = await import(event.data+"?reload="+Math.random());
+    const reImport = await import(document.location.origin+event.data+"?reload="+Math.random());
     FileListeners.get(event.data)?.forEach(reExport=>reExport(reImport));
     HMR.update();
 });
