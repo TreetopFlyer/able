@@ -177,7 +177,7 @@ export const Transpile =
                     if(key.endsWith("/") && inPath.startsWith(key) && key.length > bestLength)
                     {
                         bestKey = key;
-                        bestLength = bestLength;
+                        bestLength = key.length;
                     }
                 });
                 if(bestKey)
@@ -207,7 +207,7 @@ export const Transpile =
         {
             const importStatement = match[0];
             const importPath = remap(match[1].substring(1, match[1].length-1));
-            const moduleName:string = `_dyn_${staticImports.length}`;
+            const moduleName = `_dyn_${staticImports.length}` as string;
 
             staticImports.push(`import ${moduleName} from ${importPath};`);
             convertedBody = convertedBody.replace(importStatement, `Promise.resolve(${moduleName})`);
@@ -349,8 +349,7 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
         {
             const type = MIME.typeByExtension(ext);
             const file = await fetch(Configuration.Proxy + url.pathname);
-            const text = await file.text();
-            return new Response(text, {headers:{...headers, "content-type":type||""}});
+            return new Response(file.body, {headers:{...headers, "content-type":type||""}});
         }
         catch(e)
         {
