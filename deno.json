@@ -11,7 +11,7 @@
     },
     "tasks":
     {
-        "local": "deno run -A --no-lock ./local.tsx",
-        "serve": "deno run -A --no-lock ./serve.tsx"
+        "local": "deno run -A --no-lock ./run-local.tsx --port=1234",
+        "serve": "deno run -A --no-lock ./run-serve.tsx --port=1234"
     }
 }

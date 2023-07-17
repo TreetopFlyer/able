@@ -1,7 +1,5 @@
-import { parseMediaType } from "https://deno.land/std@0.180.0/media_types/parse_media_type.ts";
 
 type GlyphCheck = (inGlyph:string)=>boolean
-
 const isAlphaLike:GlyphCheck =(inGlyph:string)=>
 {
     const inCode = inGlyph.charCodeAt(0);
@@ -25,18 +23,14 @@ const contiguous =(inText:string, inStart:number, inTest:GlyphCheck):number=>
 {
     let ok = true;
     let index = inStart;
-    while(ok)
+    let count = 0;
+    while(ok && count < inText.length)
     {
+        count++;
         ok = inTest(inText.charAt(index++));
     }
     return index-1;
 }
-
-// const str = `seth trowbridge`;
-// const hit0 = 0;
-// const hit1 = contiguous(str, hit0, isWhiteSpace);
-// const hit2 = contiguous(str, hit1+1, isNot(isWhiteSpace));
-// console.log(">>"+str.substring(hit1, hit2)+"<<");
 
 const findNextExport =(inFile:string, inIndex=0, inLocal:Array<string>, inForeign:Array<string>)=>
 {
@@ -49,7 +43,7 @@ const findNextExport =(inFile:string, inIndex=0, inLocal:Array<string>, inForeig
             const nextCharInd = contiguous(inFile, pos+6, isWhiteSpace);
             const nextChar = inFile[nextCharInd];
 
-            console.log(inFile.substring(pos, nextCharInd+1), `>>${nextChar}<<`)
+            //console.log(inFile.substring(pos, nextCharInd+1), `>>${nextChar}<<`)
 
             if(nextChar === "*")
             {
@@ -107,21 +101,32 @@ const findNextExport =(inFile:string, inIndex=0, inLocal:Array<string>, inForeig
     }
 };
 
-const iterate =(inFile:string)=>
+export const Exports =(inFile:string)=>
 {
     let match = 0 as number|false;
     let count = 0;
     const local = [] as string[];
     const foreign = [] as string[];
-    while(match !== false && count <100)
+    while(match !== false && count <200)
     {
         count++;
         match = findNextExport(inFile, match, local, foreign);
     }
-    console.log(local, foreign);
+    return[local, foreign] as [local:string[], foreign:string[]];
 };
 
-iterate(`
+export const FileExports =async(inURL:string|URL)=>
+{
+    console.log("scanning", inURL, "for exports")
+    const resp = await fetch(inURL);
+    const text = await resp.text();
+    return Exports(text);
+}
+
+//console.log(await FileExports(import.meta.resolve("./hmr-listen.tsx")));
+
+/*
+const [local, global] = Exports(`
 // export in comment
 export * from "react";
 const fakeexport =()=>{};
@@ -130,3 +135,6 @@ export{ thing1 as remapped, thing2} from 'React';
 export 
 export const func=()=>{};
 `);
+
+console.log(local, global);
+*/
