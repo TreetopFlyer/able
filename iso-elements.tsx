@@ -199,13 +199,12 @@ export const Router = {
             });
             document.addEventListener("click", e=>
             {
-                const t = e.target as HTMLAnchorElement;
                 const path = e.composedPath() as HTMLAnchorElement[];
                 for(let i=0; i<path.length; i++)
                 {
                     if(path[i].href)
                     {
-                        const u = new URL(t.href);
+                        const u = new URL(path[i].href);
                         if(u.origin == document.location.origin)
                         {
                             e.preventDefault();
