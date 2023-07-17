@@ -1,4 +1,4 @@
-import { load } from "https://deno.land/std/dotenv/mod.ts";
+import { load } from "https://deno.land/std@0.194.0/dotenv/mod.ts";
 import { parse } from "https://deno.land/std@0.194.0/flags/mod.ts";
 
 

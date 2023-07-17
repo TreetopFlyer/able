@@ -2,11 +2,12 @@
     "compilerOptions": { "lib": ["deno.window", "dom"] },
     "imports":
     {
-        "react":"https://esm.sh/preact@10.15.1/compat"
+        "react":"https://esm.sh/preact@10.15.1/compat",
+        "entry":"./app.tsx"
     },
     "tasks":
     {
-        "local": "deno run -A --no-lock --reload app.tsx --dev",
-        "serve": "deno run -A --no-lock --reload app.tsx"
+        "local": "deno run -A --no-lock --reload=http://localhost:1234 http://localhost:1234/run-local.tsx",
+        "serve": "deno run -A --no-lock --reload=http://localhost:1234 http://localhost:1234/run-serve.tsx"
     }
 }

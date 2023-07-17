@@ -94,7 +94,7 @@ let Configuration:Configuration =
                     <script type="importmap">${JSON.stringify(inMap)}</script>
                     <script type="module">
                         import Mount from "${import.meta.resolve("./boot.tsx")}";
-                        Mount("#app", document.location.origin+"${parts[1]??"/app.tsx"}");
+                        Mount("#app", "entry");
                     </script>
                 </body>
             </html>`, {status:200, headers:{"content-type":"text/html"}});
