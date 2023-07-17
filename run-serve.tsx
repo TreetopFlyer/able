@@ -53,6 +53,10 @@ const ImportMapReload =async()=>
     {
         console.log(`"react" specifier not defined in import map`);
     }
+    else if(!json.imports["react/"])
+    {
+        json.imports["react/"] = json.imports["react"]+"/";
+    }
 
     ImportMap.imports = Configuration.Remap(json.imports, Configuration);
     console.log(ImportMap.imports);
@@ -70,12 +74,6 @@ let Configuration:Configuration =
     async Serve(inReq, inURL, inExt, inMap, inConfig){},
     Remap: (inImports, inConfig)=>
     {
-        const reactURL = inImports["react"];
-        const setting = Configuration.SWCOp?.jsc?.transform?.react;
-        if(setting && reactURL)
-        {
-            setting.importSource = reactURL;
-        }
         return inImports;
     },
     Shell(inReq, inURL, inExt, inMap, inConfig)

@@ -2,8 +2,9 @@
     "compilerOptions": { "lib": ["deno.window", "dom"] },
     "imports":
     {
-        "react":"https://esm.sh/preact@10.15.1/compat",
-        "entry":"./app.tsx"
+        "react": "https://esm.sh/preact@10.15.1/compat",
+        "able/": "http://localhost:1234/",
+        "entry": "./app.tsx"
     },
     "tasks":
     {

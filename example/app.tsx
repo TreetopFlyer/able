@@ -1,3 +1,5 @@
+import { Router, Switch, Case } from "able/iso-elements.tsx";
+
 import React from "react";
 
 const CTXString = React.createContext("lol");
@@ -35,18 +37,20 @@ export default ()=>
 {
     const [Store, Dispatch] = React.useReducer(reducer, {name:"seth", age:24} as Store, builder)
     return <CTXString.Provider value="intradestink">
-        <div class="my-4 font-sans">
-            <h1 class="font-black text-xl text-red-500">Title</h1>
-            <h2 class="font-black text-blue-500">subtitle</h2>
-            <p>
-                <button onClick={e=>Dispatch(1)}>{Store.name}|{Store.age}?</button>
-            </p>
-        </div>
-        <Outer>
-            <Inner/>
-        </Outer>
-        <Outer>
-            <Inner/>
-        </Outer>
+        <Router.Provider>
+            <div class="my-4 font-sans">
+                <h1 class="font-black text-xl text-red-500">Title</h1>
+                <h2 class="font-black text-blue-500 p-4">subtitle</h2>
+                <p>
+                    <button onClick={e=>Dispatch(1)}>{Store.name}|{Store.age}?</button>
+                </p>
+            </div>
+            <Outer>
+                <Inner/>
+            </Outer>
+            <Outer>
+                <Inner/>
+            </Outer>
+        </Router.Provider>
     </CTXString.Provider>;         
 }
