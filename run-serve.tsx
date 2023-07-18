@@ -11,15 +11,6 @@ Deno.args.forEach(arg=>
     }
 });
 
-const urls = {
-    Cwd: new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString(),
-    App: Deno.mainModule,
-    Mod: import.meta.url,
-    Look: import.meta.resolve("./boot.tsx")
-};
-
-console.log(JSON.stringify(urls, null, " "));
-
 type DenoConfig = {imports:Record<string, string>};
 const ImportMap:DenoConfig = {imports:{}};
 let ImportMapOriginal = {};
@@ -41,14 +32,6 @@ const ImportMapReload =async()=>
         return;
     }
 
-    Object.entries(json.imports).forEach(([key, value])=>
-    {
-        if(value.startsWith("./"))
-        {
-            json.imports[key] = value.substring(1);
-        }
-    });
-
     if(!json.imports["react"])
     {
         console.log(`"react" specifier not defined in import map`);
@@ -58,8 +41,20 @@ const ImportMapReload =async()=>
         json.imports["react/"] = json.imports["react"]+"/";
     }
 
+    if(!json.imports["entry"])
+    {
+        console.log(`"entry" specifier not defined in import map.`);
+    }
+
+    Object.entries(json.imports).forEach(([key, value])=>
+    {
+        if(value.startsWith("./"))
+        {
+            json.imports[key] = value.substring(1);
+        }
+    });
+
     ImportMap.imports = Configuration.Remap(json.imports, Configuration);
-    console.log(ImportMap.imports);
 };
 
 type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>}, inConfig:Configuration)=>void|false|Response|Promise<Response|void|false>;
@@ -91,7 +86,7 @@ let Configuration:Configuration =
                     <div id="app"></div>
                     <script type="importmap">${JSON.stringify(inMap)}</script>
                     <script type="module">
-                        import Mount from "${import.meta.resolve("./boot.tsx")}";
+                        import Mount from "${import.meta.resolve("./run-browser.tsx")}";
                         Mount("#app", "entry");
                     </script>
                 </body>
@@ -307,7 +302,7 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
                 }
                 else
                 {
-                    throw new Error("404")
+                    throw new Error("404");
                 }
             }
             catch(e)

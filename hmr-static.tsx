@@ -117,7 +117,6 @@ export const Exports =(inFile:string)=>
 
 export const FileExports =async(inURL:string|URL)=>
 {
-    console.log("scanning", inURL, "for exports")
     const resp = await fetch(inURL);
     const text = await resp.text();
     return Exports(text);

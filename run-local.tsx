@@ -45,7 +45,6 @@ Configure({
 
             // we dont need to add ?reload= because this fetch is by way the file system not the hosted url
             const [local, foreign] = await Collect.FileExports(inConfig.Proxy+inURL.pathname);
-            console.log(local, foreign);
             const code =`
 import {FileListen} from "${import.meta.resolve(`./hmr-listen.tsx`)}";
 import * as Import from "${inURL.pathname}?reload=0";
