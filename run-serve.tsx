@@ -270,10 +270,9 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
     const ext = Extension(url.pathname);
     const headers = {"content-type":"application/json", "Access-Control-Allow-Origin": Configuration.Allow, "charset":"UTF-8"};
 
-    // cache-reset route
-    if(url.pathname === Configuration.Reset)
+    if(url.pathname.includes("/__"))
     {
-        return new Response(`{"cleared":${Transpile.Clear()}}`, {headers});
+        return new Response(`{"error":"unmatched route", "path":"${url.pathname}"}`, {status:404, headers});
     }
 
     // allow for custom handler
@@ -333,6 +332,12 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
         {
             return shell;
         }
+    }
+
+    // cache-reset route
+    if(url.pathname === Configuration.Reset)
+    {
+        return new Response(`{"cleared":${Transpile.Clear()}}`, {headers});
     }
 
     // all other static files
