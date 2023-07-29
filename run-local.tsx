@@ -33,9 +33,6 @@ Configure({
             {
 
                 // we dont need to add ?reload= because this fetch is by way the file system not the hosted url
-
-                console.log("collecting exports for", Root+inURL.pathname);
-
                 const [local, foreign] = await Collect.FileExports(Root+inURL.pathname);
                 const code =`
     import {FileListen} from ">able/hmr-listen.tsx";
@@ -65,10 +62,6 @@ Configure({
                 }
                 catch(e){ /**/ }
             }            
-        }
-        else
-        {
-            console.log("not collecting", inURL.pathname)
         }
 
     }

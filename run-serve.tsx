@@ -278,7 +278,16 @@ export const Configure =(config:ConfigurationArgs)=>
 }
 
 await ImportMapReload();
-await SWCW.default();
+try
+{
+    await SWCW.default();
+}
+catch(e)
+{
+    console.log("swc init error:", e);
+}
+
+
 const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(req: Request)=>
 {
     const url:URL = new URL(req.url);
@@ -364,3 +373,4 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
     return new Response(`{"error":"unmatched route", "path":"${url.pathname}"}`, {status:404, headers});
 
 });
+
