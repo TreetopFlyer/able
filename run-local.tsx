@@ -1,4 +1,4 @@
-import {Configure, Transpile, Extension} from "./run-serve.tsx";
+import {Configure, Transpile, Extension, Root} from "./run-serve.tsx";
 import * as Collect from "./hmr-static.tsx";
 
 const SocketsLive:Set<WebSocket> = new Set();
@@ -30,21 +30,8 @@ Configure({
         if(Transpile.Check(inExt) && !inURL.searchParams.get("reload"))
         {
 
-//            const imp = await import(inConfig.Proxy+inURL.pathname);
-//            const members = [];
-//            for( const key in imp ) { members.push(key); }
-//
-//            const code =`
-//import {FileListen} from "${import.meta.resolve(`./hmr-listen.tsx`)}";
-//import * as Import from "${inURL.pathname}?reload=0";
-//${ members.map(m=>`let proxy_${m} = Import.${m}; export { proxy_${m} as ${m} };`).join("\n") }
-//FileListen("${inURL.pathname}", (updatedModule)=>
-//{
-//    ${ members.map(m=>`proxy_${m} = updatedModule.${m};`).join("\n") }
-//});`            
-
             // we dont need to add ?reload= because this fetch is by way the file system not the hosted url
-            const [local, foreign] = await Collect.FileExports(inConfig.Proxy+inURL.pathname);
+            const [local, foreign] = await Collect.FileExports(Root+inURL.pathname);
             const code =`
 import {FileListen} from "${import.meta.resolve(`./hmr-listen.tsx`)}";
 import * as Import from "${inURL.pathname}?reload=0";

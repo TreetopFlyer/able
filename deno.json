@@ -7,7 +7,9 @@
     {
         "react":"https://esm.sh/preact@10.15.1/compat",
         "react-original":"https://esm.sh/preact@10.15.1/compat",
-        "able/": "http://localhost:1234/"
+        "able/": "http://localhost:1234/",
+        "able:app": "./example/app.tsx",
+        ">able/": "https://gitea.hptrow.me/SethTrowbridge/able-baker/raw/branch/master/"
     },
     "tasks":
     {
