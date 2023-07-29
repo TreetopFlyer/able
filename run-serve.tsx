@@ -104,7 +104,7 @@ let Configuration:Configuration =
                     <script type="importmap">${JSON.stringify(inMap)}</script>
                     <script type="module">
                         import Mount from ">able/run-browser.tsx";
-                        Mount("#app", ">able/app.tsx");
+                        Mount("#app", ">able/app");
                     </script>
                 </body>
             </html>`, {status:200, headers:{"content-type":"text/html"}});
