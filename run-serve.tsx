@@ -56,10 +56,18 @@ const ImportMapReload =async()=>
         {
             json.imports[key] = value.substring(1);
         }
-        if(key.startsWith(">")||key.startsWith("able/"))
+        if(key.startsWith(">"))
         {
-            ImportMapProxies["/"+encodeURI(key)] = value;
-            json.imports[key] = "/"+key;
+            if(value.startsWith("./"))
+            {
+                ImportMapProxies[encodeURI(key)] = value.substring(1);
+                json.imports[key] = value.substring(1); 
+            }
+            else
+            {
+                ImportMapProxies["/"+encodeURI(key)] = value;
+                json.imports[key] = "/"+key;    
+            }
         }
     });
 
@@ -92,8 +100,8 @@ let Configuration:Configuration =
                     <div id="app"></div>
                     <script type="importmap">${JSON.stringify(inMap)}</script>
                     <script type="module">
-                        import Mount from "${import.meta.resolve("./run-browser.tsx")}";
-                        Mount("#app", "able:app");
+                        import Mount from ">able/run-browser.tsx";
+                        Mount("#app", ">able/app.tsx");
                     </script>
                 </body>
             </html>`, {status:200, headers:{"content-type":"text/html"}});
@@ -296,9 +304,13 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
         }
         if(bestMatch.length)
         {
-            proxy = ImportMapProxies[bestMatch] + url.pathname.substring(bestMatch.length);
-        }      
+            const match = ImportMapProxies[bestMatch];
+            const path = url.pathname.substring(bestMatch.length);
+            proxy = path ? match + path : Root + match;
+
+        }     
     }
+    console.log("proxy will be", proxy);
 
     // allow for custom handler
     const custom = await Configuration.Serve(req, url, ext, ImportMap, Configuration);
@@ -310,6 +322,7 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
     // transpileable files
     if(Transpile.Check(ext))
     {
+        console.log("transpiling:", proxy);
         const code = await Transpile.Fetch(proxy, url.pathname);    
         if(code)
         {

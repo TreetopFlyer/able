@@ -1,4 +1,4 @@
-import { Router, Switch, Case } from "able/iso-elements.tsx";
+import { Router, Switch, Case } from ">able/iso-elements.tsx";
 
 import React from "react";
 
@@ -39,7 +39,7 @@ export default ()=>
     return <CTXString.Provider value="intradestink">
         <Router.Provider>
             <div class="my-4 font-sans">
-                <h1 class="font-black text-xl text-red-500">Title</h1>
+                <h1 class="font-black text-xl text-red-500">Title?????</h1>
                 <h2 class="font-black text-blue-500 p-4">subtitle</h2>
                 <p>
                     <button onClick={e=>Dispatch(1)}>{Store.name}|{Store.age}?</button>
