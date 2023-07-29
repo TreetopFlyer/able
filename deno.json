@@ -7,12 +7,12 @@
     {
         "react":"https://esm.sh/preact@10.15.1/compat",
         "react-original":"https://esm.sh/preact@10.15.1/compat",
-        ">able/": "https://gitea.hptrow.me/SethTrowbridge/able-baker/raw/branch/master/"
+        ">able/": "http://localhost:4507/"
     },
     "tasks":
     {
-        "local": "deno run -A --no-lock ./run-local.tsx --port=1234",
-        "serve": "deno run -A --no-lock ./run-serve.tsx --port=1234",
-        "debug": "deno run -A --inspect-wait --no-lock ./run-serve.tsx --port=1234"
+        "local": "deno run -A --reload=http://localhost --no-lock ./run-local.tsx --port=1234",
+        "serve": "deno run -A --reload=http://localhost --no-lock ./run-serve.tsx --port=1234",
+        "debug": "deno run -A --reload=http://localhost --inspect-wait --no-lock ./run-serve.tsx --port=1234"
     }
 }

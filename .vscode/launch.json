@@ -8,6 +8,7 @@
             "request": "launch",
             "name": "Debug Serve Mode",
             "type": "node",
+            "cwd": "${workspaceFolder}/example",
             "runtimeExecutable": "deno",
             "runtimeArgs": ["task", "debug"],
             "attachSimplePort": 9229

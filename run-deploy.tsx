@@ -67,6 +67,7 @@ try
                 "run",
                 "-A",
                 "--no-lock",
+                "--config=deno.json",
                 "https://deno.land/x/deploy/deployctl.ts",
                 "deploy",
                 `--project=${useProject}`,

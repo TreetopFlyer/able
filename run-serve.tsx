@@ -1,6 +1,9 @@
 import * as MIME from "https://deno.land/std@0.180.0/media_types/mod.ts";
 import * as SWCW from "https://esm.sh/@swc/wasm-web@1.3.62";
 
+import Api from ">able/api";
+
+
 export const Root = new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString();
 
 Deno.args.forEach(arg=>
@@ -319,13 +322,18 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
 
         }     
     }
-    console.log("proxy will be", proxy);
 
     // allow for custom handler
     const custom = await Configuration.Serve(req, url, ext, ImportMap, Configuration);
     if(custom)
     {
         return custom;
+    }
+
+    const api = Api(req);
+    if(api)
+    {
+        return api;
     }
 
     // transpileable files

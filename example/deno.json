@@ -3,12 +3,15 @@
     "imports":
     {
         "react": "https://esm.sh/preact@10.15.1/compat",
-        ">able/app.tsx": "./app.tsx",
-        ">able/": "http://localhost:4507/"
+        ">able/": "http://localhost:4507/",
+        ">able/app": "./app.tsx",
+        ">able/api": "./api.tsx"
     },
     "tasks":
     {
-        "local": "deno run -A --no-lock --reload=http://localhost:4507/ http://localhost:4507/run-local.tsx",
-        "serve": "deno run -A --no-lock --reload=http://localhost:4507/ http://localhost:4507/run-serve.tsx"
+        "local": "deno run --config=deno.json -A --no-lock --reload=http://localhost:4507 http://localhost:4507/run-local.tsx",
+        "serve": "deno run --config=deno.json -A --no-lock --reload=http://localhost:4507 http://localhost:4507/run-serve.tsx",
+        "deploy":"deno run -A --no-lock --reload=http://localhost:4507 http://localhost:4507/run-deploy.tsx",
+        "debug": "deno run --config=deno.json -A --inspect-wait --no-lock --reload=http://localhost:4507 http://localhost:4507/run-serve.tsx"
     }
 }
