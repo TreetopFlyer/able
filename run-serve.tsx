@@ -259,8 +259,13 @@ export const Configure =(config:ConfigurationArgs)=>
     ImportMapReload();
 }
 
+
+let running = false;
 export default async()=>
 {
+    if(running){return};
+    running = true;
+    
     await ImportMapReload();
     try
     {
