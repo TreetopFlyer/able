@@ -1,19 +1,8 @@
 import * as MIME from "https://deno.land/std@0.180.0/media_types/mod.ts";
 import * as SWCW from "https://esm.sh/@swc/wasm-web@1.3.62";
 
-import Api from ">able/api";
-
 
 export const Root = new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString();
-
-Deno.args.forEach(arg=>
-{
-    if(arg.startsWith("--"))
-    {
-        const kvp = arg.substring(2).split("=");
-        Deno.env.set(kvp[0], kvp[1] || "true");
-    }
-});
 
 type DenoConfig = {imports:Record<string, string>};
 const ImportMap:DenoConfig = {imports:{}};
@@ -77,14 +66,16 @@ const ImportMapReload =async()=>
     ImportMap.imports = Configuration.Remap(json.imports, Configuration);
 };
 
-type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>}, inConfig:Configuration)=>void|false|Response|Promise<Response|void|false>;
-type CustomRemapper = (inImports:Record<string, string>, inConfig:Configuration)=>Record<string, string>;
-type Configuration     = {Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
-type ConfigurationArgs = {Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler, Shell?:CustomHTTPHandler, Remap?:CustomRemapper};
+export type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>}, inConfig:Configuration)=>void|false|Response|Promise<Response|void|false>;
+export type CustomRemapper = (inImports:Record<string, string>, inConfig:Configuration)=>Record<string, string>;
+export type Configuration     = {Start:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Extra:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
+export type ConfigurationArgs = Partial<Configuration>;
 let Configuration:Configuration =
 {
+    Start: "",
     Allow: "*",
     Reset: "/clear-cache",
+    async Extra(inReq, inURL, inExt, inMap, inConfig){},
     async Serve(inReq, inURL, inExt, inMap, inConfig){},
     Remap: (inImports, inConfig)=>
     {
@@ -104,7 +95,7 @@ let Configuration:Configuration =
                     <script type="importmap">${JSON.stringify(inMap)}</script>
                     <script type="module">
                         import Mount from ">able/run-browser.tsx";
-                        Mount("#app", ">able/app");
+                        Mount("#app", "${inConfig.Start}");
                     </script>
                 </body>
             </html>`, {status:200, headers:{"content-type":"text/html"}});
@@ -254,19 +245,6 @@ export const Transpile =
     }
 };
 
-
-export const ExtensionPrefix =(string:string, suffix:string)=>
-{
-    const lastDotIndex = string.lastIndexOf(".");
-    if (lastDotIndex === -1) {
-        return string;
-    }
-    
-    const prefix = string.substring(0, lastDotIndex);
-    const suffixString = string.substring(lastDotIndex + 1);
-    return prefix + "." + suffix + "." + suffixString;
-};
-
 export const Extension =(inPath:string)=>
 {
     const posSlash = inPath.lastIndexOf("/");
@@ -298,7 +276,7 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
     const headers = {"content-type":"application/json", "Access-Control-Allow-Origin": Configuration.Allow, "charset":"UTF-8"};
     let proxy = Root + url.pathname;
 
-    if(url.pathname.includes("/__"))
+    if(url.pathname.includes("__/") || url.pathname.lastIndexOf("__.") > -1)
     {
         return new Response(`{"error":"unmatched route", "path":"${url.pathname}"}`, {status:404, headers});
     }
@@ -323,14 +301,13 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
         }     
     }
 
-    // allow for custom handler
-    const custom = await Configuration.Serve(req, url, ext, ImportMap, Configuration);
+    // allow for custom handlers
+    const custom = await Configuration.Extra(req, url, ext, ImportMap, Configuration);
     if(custom)
     {
         return custom;
     }
-
-    const api = Api(req);
+    const api = await Configuration.Serve(req, url, ext, ImportMap, Configuration);
     if(api)
     {
         return api;
