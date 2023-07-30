@@ -1,5 +1,14 @@
 import * as Serve from "./run-serve.tsx";
-export default Serve.Configure;
+
+export default function(config:Serve.ConfigurationArgs)
+{
+    if(Deno.env.get("deploy"))
+    {
+        return;
+    }
+    Serve.Configure(config)
+    Serve.default();
+}
 
 Deno.args.forEach(arg=>
 {
@@ -10,7 +19,15 @@ Deno.args.forEach(arg=>
     }
 });
 
-if(Deno.env.get("dev"))
+if(Deno.env.get("dep"))
 {
-    import("./run-local.tsx");
+    import("./run-deploy.tsx");
+}
+else
+{
+    if(Deno.env.get("dev"))
+    {
+        await import("./run-local.tsx");
+    }
+    Serve.default();
 }

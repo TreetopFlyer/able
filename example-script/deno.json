@@ -9,6 +9,7 @@
     {
         "local": "deno run -A --no-lock --reload=http://localhost:4507 run__.tsx --dev",
         "serve": "deno run -A --no-lock --reload=http://localhost:4507 run__.tsx",
-        "debug": "deno run -A --no-lock --reload=http://localhost:4507 --inspect-wait run__.tsx"
+        "debug": "deno run -A --no-lock --reload=http://localhost:4507 --inspect-wait run__.tsx",
+        "cloud": "deno run -A --no-lock --reload=http://localhost:4507 run__.tsx --dep"
     }
 }

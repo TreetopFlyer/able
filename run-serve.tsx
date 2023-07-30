@@ -1,6 +1,7 @@
 import * as MIME from "https://deno.land/std@0.180.0/media_types/mod.ts";
 import * as SWCW from "https://esm.sh/@swc/wasm-web@1.3.62";
 
+import CustomServe from ">able/api.tsx"; 
 
 export const Root = new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString();
 
@@ -72,11 +73,11 @@ export type Configuration     = {Start:string, Allow:string, Reset:string, SWCOp
 export type ConfigurationArgs = Partial<Configuration>;
 let Configuration:Configuration =
 {
-    Start: "",
+    Start: ">able/app.tsx",
     Allow: "*",
     Reset: "/clear-cache",
     async Extra(inReq, inURL, inExt, inMap, inConfig){},
-    async Serve(inReq, inURL, inExt, inMap, inConfig){},
+    Serve: CustomServe,
     Remap: (inImports, inConfig)=>
     {
         return inImports;
@@ -258,104 +259,106 @@ export const Configure =(config:ConfigurationArgs)=>
     ImportMapReload();
 }
 
-await ImportMapReload();
-try
+export default async()=>
 {
-    await SWCW.default();
-}
-catch(e)
-{
-    console.log("swc init error:", e);
-}
-
-
-const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(req: Request)=>
-{
-    const url:URL = new URL(req.url);
-    const ext = Extension(url.pathname);
-    const headers = {"content-type":"application/json", "Access-Control-Allow-Origin": Configuration.Allow, "charset":"UTF-8"};
-    let proxy = Root + url.pathname;
-
-    if(url.pathname.includes("__/") || url.pathname.lastIndexOf("__.") > -1)
+    await ImportMapReload();
+    try
     {
-        return new Response(`{"error":"unmatched route", "path":"${url.pathname}"}`, {status:404, headers});
+        await SWCW.default();
     }
-
-    // proxy imports
-    if(url.pathname.startsWith(encodeURI("/>")))
+    catch(e)
     {
-        let bestMatch="";
-        for(let key in ImportMapProxies)
+        console.log("swc init error:", e);
+    }
+    
+    
+    const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(req: Request)=>
+    {
+        const url:URL = new URL(req.url);
+        const ext = Extension(url.pathname);
+        const headers = {"content-type":"application/json", "Access-Control-Allow-Origin": Configuration.Allow, "charset":"UTF-8"};
+        let proxy = Root + url.pathname;
+    
+        if(url.pathname.includes("__/") || url.pathname.lastIndexOf("__.") > -1)
         {
-            if(url.pathname.startsWith(key) && key.length > bestMatch.length)
+            return new Response(`{"error":"unmatched route", "path":"${url.pathname}"}`, {status:404, headers});
+        }
+    
+        // proxy imports
+        if(url.pathname.startsWith(encodeURI("/>")))
+        {
+            let bestMatch="";
+            for(let key in ImportMapProxies)
             {
-                bestMatch = key;
+                if(url.pathname.startsWith(key) && key.length > bestMatch.length)
+                {
+                    bestMatch = key;
+                }
+            }
+            if(bestMatch.length)
+            {
+                const match = ImportMapProxies[bestMatch];
+                const path = url.pathname.substring(bestMatch.length);
+                proxy = path ? match + path : Root + match;
+    
+            }     
+        }
+    
+        // allow for custom handlers
+        const custom = await Configuration.Extra(req, url, ext, ImportMap, Configuration);
+        if(custom)
+        {
+            return custom;
+        }
+        const api = await Configuration.Serve(req, url, ext, ImportMap, Configuration);
+        if(api)
+        {
+            return api;
+        }
+    
+        // transpileable files
+        if(Transpile.Check(ext))
+        {
+            console.log("transpiling:", proxy);
+            const code = await Transpile.Fetch(proxy, url.pathname);    
+            if(code)
+            {
+                return new Response(code, {headers:{...headers, "content-type":"application/javascript"}} );     
+            } 
+        }
+    
+        // custom page html
+        if(!ext)
+        {
+            const shell = await Configuration.Shell(req, url, ext, ImportMap, Configuration);
+            if(shell)
+            {
+                return shell;
             }
         }
-        if(bestMatch.length)
+    
+        // cache-reset route
+        if(url.pathname === Configuration.Reset)
         {
-            const match = ImportMapProxies[bestMatch];
-            const path = url.pathname.substring(bestMatch.length);
-            proxy = path ? match + path : Root + match;
-
-        }     
-    }
-
-    // allow for custom handlers
-    const custom = await Configuration.Extra(req, url, ext, ImportMap, Configuration);
-    if(custom)
-    {
-        return custom;
-    }
-    const api = await Configuration.Serve(req, url, ext, ImportMap, Configuration);
-    if(api)
-    {
-        return api;
-    }
-
-    // transpileable files
-    if(Transpile.Check(ext))
-    {
-        console.log("transpiling:", proxy);
-        const code = await Transpile.Fetch(proxy, url.pathname);    
-        if(code)
-        {
-            return new Response(code, {headers:{...headers, "content-type":"application/javascript"}} );     
-        } 
-    }
-
-    // custom page html
-    if(!ext)
-    {
-        const shell = await Configuration.Shell(req, url, ext, ImportMap, Configuration);
-        if(shell)
-        {
-            return shell;
+            return new Response(`{"cleared":${Transpile.Clear()}}`, {headers});
         }
-    }
-
-    // cache-reset route
-    if(url.pathname === Configuration.Reset)
-    {
-        return new Response(`{"cleared":${Transpile.Clear()}}`, {headers});
-    }
-
-    // all other static files
-    if(ext)
-    {
-        try
+    
+        // all other static files
+        if(ext)
         {
-            const type = MIME.typeByExtension(ext);
-            const file = await fetch(proxy);
-            return new Response(file.body, {headers:{...headers, "content-type":type||""}});
+            try
+            {
+                const type = MIME.typeByExtension(ext);
+                const file = await fetch(proxy);
+                return new Response(file.body, {headers:{...headers, "content-type":type||""}});
+            }
+            catch(e)
+            {
+                return new Response(`{"error":"${e}", "path":"${url.pathname}"}`, {status:404, headers});
+            }
         }
-        catch(e)
-        {
-            return new Response(`{"error":"${e}", "path":"${url.pathname}"}`, {status:404, headers});
-        }
-    }
-
-    return new Response(`{"error":"unmatched route", "path":"${url.pathname}"}`, {status:404, headers});
-
-});
-
+    
+        return new Response(`{"error":"unmatched route", "path":"${url.pathname}"}`, {status:404, headers});
+    
+    });
+}
