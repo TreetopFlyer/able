@@ -1,15 +1,5 @@
 import * as Serve from "./run-serve.tsx";
 
-export default function(config:Serve.ConfigurationArgs)
-{
-    if(Deno.env.get("deploy"))
-    {
-        return;
-    }
-    Serve.Configure(config)
-    Serve.default();
-}
-
 Deno.args.forEach(arg=>
 {
     if(arg.startsWith("--"))
@@ -18,14 +8,25 @@ Deno.args.forEach(arg=>
         Deno.env.set(kvp[0], kvp[1] || "true");
     }
 });
+const isDeploy = Deno.env.get("dep");
+const isDevelop = Deno.env.get("dev");
 
-if(Deno.env.get("dep"))
+export default function(config:Serve.ConfigurationArgs)
+{
+    if(!isDeploy)
+    {
+        Serve.Configure(config)
+        Serve.default();
+    }
+}
+
+if(isDeploy)
 {
     import("./run-deploy.tsx");
 }
 else
 {
-    if(Deno.env.get("dev"))
+    if(isDevelop)
     {
         await import("./run-local.tsx");
     }
