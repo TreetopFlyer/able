@@ -64,7 +64,7 @@ try
                 "https://deno.land/x/deploy/deployctl.ts",
                 "deploy",
                 `--project=${useProject}`,
-                `--config=deno.json`,
+                `--import-map=./deno.json`,
                 `--token=${useToken}`,
                 serveScript
             ],
