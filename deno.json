@@ -7,13 +7,13 @@
     {
         "react":"https://esm.sh/preact@10.15.1/compat",
         "react-original":"https://esm.sh/preact@10.15.1/compat",
-        ">able/": "http://localhost:4507/"
+        "able/": "http://localhost:4507/"
     },
     "tasks":
     {
-        "local": "deno run -A --reload=http://localhost --no-lock ./run-local.tsx --port=1234",
-        "serve": "deno run -A --reload=http://localhost --no-lock ./run-serve.tsx --port=1234",
-        "debug": "deno run -A --reload=http://localhost --inspect-wait --no-lock ./run-serve.tsx --port=1234",
-        "deploy":"deno run -A --no-lock --reload=http://localhost http://localhost:4507/run-deploy.tsx"
+        "local": "deno run -A --reload=http://localhost:4507 --no-lock ./run-local.tsx --port=1234",
+        "serve": "deno run -A --reload=http://localhost:4507 --no-lock ./run-serve.tsx --port=1234",
+        "debug": "deno run -A --reload=http://localhost:4507 --inspect-wait --no-lock ./run-serve.tsx --port=1234",
+        "deploy":"deno run -A --no-lock --reload=http://localhost:4507 http://localhost:4507/run-deploy.tsx"
     }
 }

@@ -25,7 +25,7 @@ Configure({
         inImports["react"] = `/>able/hmr-react.tsx`;
         return inImports;
     },
-    async Serve(inReq, inURL, inExt, inMap, inConfig)
+    async Extra(inReq, inURL, inExt, inMap, inConfig)
     {
         if(!inURL.pathname.startsWith(encodeURI("/>")))
         {

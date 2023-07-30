@@ -30,6 +30,7 @@ const collect =async(inKey:string, inArg:Record<string, string>, inEnv:Record<st
         console.log("Exiting...");
         Deno.exit();
     }
+    return scanUser;
 };
 
 const prompt =async(question: string):Promise<string>=>
@@ -45,14 +46,24 @@ const prompt =async(question: string):Promise<string>=>
 
 try
 {
-    console.log("Runing deploy!");
-    const serveScript = import.meta.resolve("./run-serve.tsx");
+    console.log("Runing deploy!", Deno.mainModule);
 
     let arg = parse(Deno.args);
     let env = await Env.load();
 
     let useToken = await collect("DENO_DEPLOY_TOKEN", arg, env);
     let useProject = await collect("DENO_DEPLOY_PROJECT", arg, env);
+    
+    let scanProd:string|string[] = await prompt(`Do you want to deploy to *production*? [y/n]`);
+    if(scanProd == "y")
+    {
+        scanProd = await prompt(`This will update the live project at ${useProject} are you sure you want to continue? [y/n]`);
+        scanProd = scanProd=="y" ? ["--prod"] : [];
+    }
+    else
+    {
+        scanProd = [];
+    }
 
     const command = new Deno.Command(
         `deno`,
@@ -66,7 +77,8 @@ try
                 `--project=${useProject}`,
                 `--import-map=./deno.json`,
                 `--token=${useToken}`,
-                serveScript
+                ...scanProd,
+                Deno.mainModule
             ],
             stdin: "piped",
             stdout: "piped"

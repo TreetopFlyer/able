@@ -26,6 +26,13 @@ export const Shadow =(inElement:HTMLElement, inConfig?:TW.TwindUserConfig)=>
 
 export default async(inSelector:string, inModulePath:string, inMemberApp="default", inMemberCSS="CSS"):Promise<(()=>void)|false>=>
 {
+
+  if(!inModulePath)
+  {
+    return false;
+  }
+
+
   let dom = document.querySelector(inSelector);
   if(!dom)
   {
