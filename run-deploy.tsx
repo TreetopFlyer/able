@@ -1,4 +1,4 @@
-import { load } from "https://deno.land/std@0.194.0/dotenv/mod.ts";
+import * as Env from "https://deno.land/std@0.194.0/dotenv/mod.ts";
 import { parse } from "https://deno.land/std@0.194.0/flags/mod.ts";
 
 
@@ -47,18 +47,12 @@ try
 {
     console.log("Runing deploy!");
     const serveScript = import.meta.resolve("./run-serve.tsx");
-    console.log("Serve script:", serveScript);
 
     let arg = parse(Deno.args);
-    let env = await load();
+    let env = await Env.load();
 
     let useToken = await collect("DENO_DEPLOY_TOKEN", arg, env);
     let useProject = await collect("DENO_DEPLOY_PROJECT", arg, env);
-    let useEntry = await collect("DENO_DEPLOY_ENTRY", arg, env);
-
-    Deno.env.set("DENO_DEPLOY_TOKEN", useToken || "");
-    Deno.env.set("DENO_DEPLOY_ENTRY", useEntry || "");
-
 
     const command = new Deno.Command(
         `deno`,
@@ -70,6 +64,8 @@ try
                 "https://deno.land/x/deploy/deployctl.ts",
                 "deploy",
                 `--project=${useProject}`,
+                `--config=deno.json`,
+                `--token=${useToken}`,
                 serveScript
             ],
             stdin: "piped",

@@ -1,6 +1,10 @@
 import * as MIME from "https://deno.land/std@0.180.0/media_types/mod.ts";
 import * as SWCW from "https://esm.sh/@swc/wasm-web@1.3.62";
 
+import Api from ">able/api";
+
+
+export const Root = new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString();
 
 Deno.args.forEach(arg=>
 {
@@ -14,10 +18,11 @@ Deno.args.forEach(arg=>
 type DenoConfig = {imports:Record<string, string>};
 const ImportMap:DenoConfig = {imports:{}};
 let ImportMapOriginal = {};
+let ImportMapProxies:Record<string, string> = {};
 const ImportMapReload =async()=>
 {
     let json:DenoConfig;
-    const path = Configuration.Proxy+"/deno.json";
+    const path = Root+"/deno.json";
     try
     {
         const resp = await fetch(path);
@@ -41,16 +46,31 @@ const ImportMapReload =async()=>
         json.imports["react/"] = json.imports["react"]+"/";
     }
 
-    if(!json.imports["entry"])
+    if(!json.imports["able:app"])
     {
-        console.log(`"entry" specifier not defined in import map.`);
+        console.log(`"able:app" specifier not defined in import map.`);
     }
 
+
+    ImportMapProxies = {};
     Object.entries(json.imports).forEach(([key, value])=>
     {
         if(value.startsWith("./"))
         {
             json.imports[key] = value.substring(1);
+        }
+        if(key.startsWith(">"))
+        {
+            if(value.startsWith("./"))
+            {
+                ImportMapProxies[encodeURI(key)] = value.substring(1);
+                json.imports[key] = value.substring(1); 
+            }
+            else
+            {
+                ImportMapProxies["/"+encodeURI(key)] = value;
+                json.imports[key] = "/"+key;    
+            }
         }
     });
 
@@ -59,11 +79,10 @@ const ImportMapReload =async()=>
 
 type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>}, inConfig:Configuration)=>void|false|Response|Promise<Response|void|false>;
 type CustomRemapper = (inImports:Record<string, string>, inConfig:Configuration)=>Record<string, string>;
-type Configuration     = {Proxy:string, Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
-type ConfigurationArgs = {Proxy?:string, Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler, Shell?:CustomHTTPHandler, Remap?:CustomRemapper};
+type Configuration     = {Allow:string, Reset:string, SWCOp:SWCW.Options, Serve:CustomHTTPHandler, Shell:CustomHTTPHandler, Remap:CustomRemapper};
+type ConfigurationArgs = {Allow?:string, Reset?:string, SWCOp?:SWCW.Options, Serve?:CustomHTTPHandler, Shell?:CustomHTTPHandler, Remap?:CustomRemapper};
 let Configuration:Configuration =
 {
-    Proxy: new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString(),
     Allow: "*",
     Reset: "/clear-cache",
     async Serve(inReq, inURL, inExt, inMap, inConfig){},
@@ -73,8 +92,6 @@ let Configuration:Configuration =
     },
     Shell(inReq, inURL, inExt, inMap, inConfig)
     {
-        const parts = Deno.mainModule.split(inConfig.Proxy);
-
         return new Response(
             `<!doctype html>
             <html>
@@ -86,8 +103,8 @@ let Configuration:Configuration =
                     <div id="app"></div>
                     <script type="importmap">${JSON.stringify(inMap)}</script>
                     <script type="module">
-                        import Mount from "${import.meta.resolve("./run-browser.tsx")}";
-                        Mount("#app", "entry");
+                        import Mount from ">able/run-browser.tsx";
+                        Mount("#app", ">able/app");
                     </script>
                 </body>
             </html>`, {status:200, headers:{"content-type":"text/html"}});
@@ -133,6 +150,7 @@ export const Transpile =
         return size;
     },
     /**
+     * DONT USE
      * Converts dynamic module imports in to static, also can resolve paths with an import map
      */
     async Patch(inPath:string, inKey:string, inMap?:DenoConfig)
@@ -263,17 +281,46 @@ export const Configure =(config:ConfigurationArgs)=>
 }
 
 await ImportMapReload();
-await SWCW.default();
+try
+{
+    await SWCW.default();
+}
+catch(e)
+{
+    console.log("swc init error:", e);
+}
+
+
 const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(req: Request)=>
 {
     const url:URL = new URL(req.url);
     const ext = Extension(url.pathname);
     const headers = {"content-type":"application/json", "Access-Control-Allow-Origin": Configuration.Allow, "charset":"UTF-8"};
+    let proxy = Root + url.pathname;
 
-    // cache-reset route
-    if(url.pathname === Configuration.Reset)
+    if(url.pathname.includes("/__"))
     {
-        return new Response(`{"cleared":${Transpile.Clear()}}`, {headers});
+        return new Response(`{"error":"unmatched route", "path":"${url.pathname}"}`, {status:404, headers});
+    }
+
+    // proxy imports
+    if(url.pathname.startsWith(encodeURI("/>")))
+    {
+        let bestMatch="";
+        for(let key in ImportMapProxies)
+        {
+            if(url.pathname.startsWith(key) && key.length > bestMatch.length)
+            {
+                bestMatch = key;
+            }
+        }
+        if(bestMatch.length)
+        {
+            const match = ImportMapProxies[bestMatch];
+            const path = url.pathname.substring(bestMatch.length);
+            proxy = path ? match + path : Root + match;
+
+        }     
     }
 
     // allow for custom handler
@@ -283,42 +330,17 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
         return custom;
     }
 
+    const api = Api(req);
+    if(api)
+    {
+        return api;
+    }
+
     // transpileable files
     if(Transpile.Check(ext))
     {
-        let code;
-        let path;
-        let file;
-        if( req.headers.get("user-agent")?.startsWith("Deno") || url.searchParams.has("deno") )
-        {
-            try
-            {
-                path = Configuration.Proxy + ExtensionPrefix(url.pathname, "deno");
-                console.log("looking for", path);
-                file = await fetch(path) as Response;
-                if(file.ok)
-                {
-                    code = await file.text();
-                }
-                else
-                {
-                    throw new Error("404");
-                }
-            }
-            catch(e)
-            {
-                path = Configuration.Proxy + url.pathname;
-                console.log("falling back to", path);
-                file = await fetch(path);
-                code = await file.text();
-            }
-        }
-        else
-        {
-            path = Configuration.Proxy + url.pathname;
-            code = await Transpile.Fetch(path, url.pathname);    
-        }
-
+        console.log("transpiling:", proxy);
+        const code = await Transpile.Fetch(proxy, url.pathname);    
         if(code)
         {
             return new Response(code, {headers:{...headers, "content-type":"application/javascript"}} );     
@@ -335,13 +357,19 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
         }
     }
 
+    // cache-reset route
+    if(url.pathname === Configuration.Reset)
+    {
+        return new Response(`{"cleared":${Transpile.Clear()}}`, {headers});
+    }
+
     // all other static files
     if(ext)
     {
         try
         {
             const type = MIME.typeByExtension(ext);
-            const file = await fetch(Configuration.Proxy + url.pathname);
+            const file = await fetch(proxy);
             return new Response(file.body, {headers:{...headers, "content-type":type||""}});
         }
         catch(e)
@@ -353,3 +381,4 @@ const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(r
     return new Response(`{"error":"unmatched route", "path":"${url.pathname}"}`, {status:404, headers});
 
 });
+
