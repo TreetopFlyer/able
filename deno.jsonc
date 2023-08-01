@@ -3,9 +3,9 @@
     {
         "react":"https://esm.sh/preact@10.15.1/compat", // (required) Specifier for 'react'
         "react/":"https://esm.sh/preact@10.15.1/compat/", // (conditional) This allows the use of JSX without explicitly importing React into a module. If you choose to remove this (and make importing react required), also remove "jsx" and "jsxImportSource" from "compilerOptions" (below)
-        ">able/": "{{server}}", // (required) Specifier 'able'. (See note below about "isomorphic proxies")
-        {{commentApp}}">able/app.tsx": "{{app}}",
-        {{commentApi}}">able/api.tsx": "{{api}}"
+        ">able/": "http://localhost:4507/", // (required) Specifier 'able'. (See note below about "isomorphic proxies")
+        // (required) module with default export ()=>React.JSX.Element">able/app.tsx": "./path/to/app.tsx",
+        // (optional) module with default export (req:Request, url:URL)=>Promise<Response|false>">able/api.tsx": "./path/to/api.tsx"
     },
 
     "tasks":

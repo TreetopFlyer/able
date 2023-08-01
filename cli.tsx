@@ -1,12 +1,14 @@
 import { parse as JSONC } from "https://deno.land/x/jsonct@v0.1.0/mod.ts";
-const Root = new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString();
+const RootFile = new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString();
+const RootHost = import.meta.resolve("./");
+
 export async function HuntConfig()
 {
     let path:string, resp:Response, text="", json;
     try
     {
         path = "deno.json"
-        resp = await fetch(Root + "/" + path);
+        resp = await fetch(RootFile + "/" + path);
         text = await resp.text();
     }
     catch(e)
@@ -14,21 +16,21 @@ export async function HuntConfig()
         try
         {
             path = "deno.jsonc";
-            resp = await fetch(Root + "/" + path);
+            resp = await fetch(RootFile + "/" + path);
             text = await resp.text();
         }
         catch(e)
         {
             try
             {
-                path = Root+"/.vscode/settings.json"
+                path = RootFile+"/.vscode/settings.json"
                 resp = await fetch(path);
                 json = await resp.json();
                 path = json["deno.config"];
                 json = undefined;
                 if(path)
                 {
-                    resp = await fetch(Root + "/" + path);
+                    resp = await fetch(RootFile + "/" + path);
                     text = await resp.text();
                 }
             }
@@ -52,6 +54,11 @@ export async function HuntConfig()
     }
 
     return {path, text, json};
+}
+
+export async function HuntImport()
+{
+
 }
 
 async function Prompt(question: string):Promise<string>
@@ -92,26 +99,63 @@ export async function SubProcess(args:string[])
     const status = await child.status;    
 }
 
+export async function Install(file:string, handler:(content:string)=>string = (s)=>s)
+{
+    const pathFile = RootHost + "install__/" + file;
+
+    try{
+        const check = await Deno.readTextFile(Deno.cwd()+"/"+file);
+        const replace = await Prompt(`The file "${file}" already exists. Replace it? [y/n]`);
+        if(replace == "y")
+        {
+            throw("")
+        }
+        console.log(`Skipping "${file}" for now.`);
+    }
+    catch(e)
+    {
+        const resp = await fetch(pathFile);
+        const text = await resp.text();
+        await Deno.writeTextFile(Deno.cwd()+"/"+file, handler(text));   
+    }
+}
+
 const config = await HuntConfig();
 if(!config.path)
 {
+    const pathServer = import.meta.resolve("./");
     try
     {
-        const resp = await Prompt("No Deno configuration found. Create one? [y/n]");
-        if(resp == "y")
+        const resp1 = await Prompt("No Deno configuration found. Create one? [y/n]");
+        if(resp1 == "y")
         {
-            const pathServer = import.meta.resolve("./");
-            const pathConfig = pathServer + "install__/deno.jsonc";
+            const resp2 = await Prompt("Do you also want to add starter files? [y/n]");
+            let replaceApp = "./path/to/app.tsx";
+            let replaceApi = "./path/to/api.tsx";
+            let replaceCommentApp = "// (required) module with default export ()=>React.JSX.Element";
+            let replaceCommentApi = "// (optional) module with default export (req:Request, url:URL)=>Promise<Response|false>";
+            if(resp2 == "y")
+            {
+                replaceApp = "./app.tsx";
+                replaceApi = "./api.tsx";
+                replaceCommentApp = "";
+                replaceCommentApi = "";
 
-            console.log(pathServer, pathConfig);
+                await Install("app.tsx");
+                await Install("api.tsx");
+            }
 
-            const resp = await fetch(pathConfig);
-            const text = await resp.text();
-            Deno.writeTextFileSync(Deno.cwd()+"/deno.jsonc", text.replaceAll("{{server}}", pathServer));
+            await Install("deno.jsonc", (s)=>s
+                .replace("{{server}}", RootHost)
+                .replace("{{app}}", replaceApp)
+                .replace("{{api}}", replaceApi)
+                .replace("{{commentApp}}", replaceCommentApp)
+                .replace("{{commentApi}}", replaceCommentApi)
+            );
         }
         else
         {
-            throw("");
+            throw("Config declined.");
         }
     }
     catch(e)
@@ -119,5 +163,9 @@ if(!config.path)
         console.log(e, "(Exiting...)");
         Deno.exit();
     }
+}
+else if(config.json)
+{
+
 }
 console.log(config);
