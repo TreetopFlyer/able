@@ -8,13 +8,13 @@
         "react":"https://esm.sh/preact@10.15.1/compat",
         "react/":"https://esm.sh/preact@10.15.1/compat/",
         "react-original":"https://esm.sh/preact@10.15.1/compat",
-        "able/": "http://localhost:4507/"
+        ">able/": "http://localhost:4507/"
     },
     "tasks":
     {
         "local": "deno run -A --reload=http://localhost:4507 --no-lock ./run-local.tsx --port=1234",
         "serve": "deno run -A --reload=http://localhost:4507 --no-lock ./run-serve.tsx --port=1234",
+        "cloud": "deno run -A --reload=http://localhost:4507 --no-lock ./run-deploy.tsx",
         "debug": "deno run -A --reload=http://localhost:4507 --no-lock --inspect-wait  ./run-serve.tsx --port=1234",
-        "cloud": "deno run -A --reload=http://localhost:4507 --no-lock  ./run-deploy.tsx"
     }
 }
