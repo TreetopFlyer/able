@@ -82,17 +82,6 @@ export async function HuntConfig()
     return [{path, text, json}, imports] as ConfigCheckPair
 }
 
-async function Prompt(question: string):Promise<string>
-{
-    const buf = new Uint8Array(1024);
-    await Deno.stdout.write(new TextEncoder().encode(question));
-    const bytes = await Deno.stdin.read(buf);
-    if (bytes) {
-        return new TextDecoder().decode(buf.subarray(0, bytes)).trim();
-    }
-    throw new Error("Unexpected end of input");
-}
-
 export async function SubProcess(args:string[])
 {
     const command = new Deno.Command(
@@ -126,12 +115,12 @@ export async function Install(file:string, handler:(content:string)=>string = (s
 
     try{
         const check = await Deno.readTextFile(Deno.cwd()+"/"+file);
-        const replace = await Prompt(`The file "${file}" already exists. Replace it? [y/n]`);
-        if(replace == "y")
+        const replace = confirm(`⚠️🚧 The file "${file}" already exists. Replace it?`);
+        if(replace)
         {
             throw("")
         }
-        console.log(`Skipping "${file}" for now.`);
+        console.log(`Using pre-existing "${file}" for now.`);
     }
     catch(e)
     {
@@ -141,21 +130,22 @@ export async function Install(file:string, handler:(content:string)=>string = (s
     }
 }
 
+console.info(`👷 Checking your project`)
 try
 {
     let [config, imports] = await HuntConfig();
-    console.log(`1) Checking for Deno configuration...`)
     if(!config.path)
     {
-        const resp1 = await Prompt(" ! No Deno configuration found. Create one? [y/n]");
-        if(resp1 == "y")
+        //const resp1 = await Prompt(" ! No Deno configuration found. Create one? [y/n]");
+        const resp1 = confirm("🚨🚧 No Deno configuration found. Create one?");
+        if(resp1)
         {
-            const resp2 = await Prompt(" ? Do you also want to add starter files? [y/n]");
+            const resp2 = confirm("⚠️🚧 Do you also want to add starter files?");
             let replaceApp = "./path/to/app.tsx";
             let replaceApi = "./path/to/api.tsx";
             let replaceCommentApp = "// (required) module with default export ()=>React.JSX.Element";
             let replaceCommentApi = "// (optional) module with default export (req:Request, url:URL)=>Promise<Response|false>";
-            if(resp2 == "y")
+            if(resp2)
             {
                 replaceApp = "./app.tsx";
                 replaceApi = "./api.tsx";
@@ -182,7 +172,7 @@ try
         }
         else
         {
-            throw(" X  Config is required.");
+            throw("⛔ Config is required.");
         }
 
     }
@@ -200,35 +190,34 @@ if (match !== -1) {
 }
 */
 
-    console.log(`2) Verifying configuration...`)
     if(config.json && imports.json?.imports)
     {
         const importMap = imports.json.imports as Record<string, string>;
-        let changes = false;
+        let changes = ``;
         if(!importMap["react"])
         {
-            const resp = await Prompt(` ! Import map has no specifier for React. Add it now? (will use Preact compat) [y/n]`);
-            if(resp == "y")
+            const resp = confirm(`🚨🔧 Import map has no specifier for React ("react"). Fix it now? (Will use Preact compat)`);
+            if(resp)
             {
                 importMap["react"] =  "https://esm.sh/preact@10.16.0/compat";
-                changes = true;
+                changes += `"react": "https://esm.sh/preact@10.16.0/compat",\n`;
             }
             else
             {
-                throw(" X  A React import is required.");
+                throw(`⛔ A React import ("react") is required.`);
             }
         }
         if(!importMap[">able/"])
         {
-            const resp = await Prompt(` ! Import map has no specifier for Able (">able/"). Add it now? [y/n]`);
-            if(resp == "y")
+            const resp = confirm(`🚨🔧 Import map has no specifier for Able (">able/"). Fix it now?`);
+            if(resp)
             {
                 importMap[">able/"] =  RootHost;
-                changes = true;
+                changes += `">able": "${RootHost}",\n`;
             }
             else
             {
-                throw(" X  Able is required.");
+                throw(`⛔ The Able import (">able/") is required.`);
             }
         }
         
@@ -254,3 +243,4 @@ catch(e)
     console.log(e, "\n (Able Exiting...)");
     Deno.exit();
 }
+console.log(`🚗 Good to go!`);
