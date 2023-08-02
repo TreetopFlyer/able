@@ -2,6 +2,9 @@ import { parse as JSONC } from "https://deno.land/x/jsonct@v0.1.0/mod.ts";
 const RootFile = new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString();
 const RootHost = import.meta.resolve("./");
 
+type ConfigCheck = {path?:string, text?:string, json?:Record<string, string|Record<string, string|string[]>>};
+type ConfigCheckPair = [config:ConfigCheck, imports:ConfigCheck];
+
 export async function HuntConfig()
 {
     let path:string, resp:Response, text="", json;
@@ -30,7 +33,8 @@ export async function HuntConfig()
                 json = undefined;
                 if(path)
                 {
-                    resp = await fetch(RootFile + "/" + path);
+                    path = RootFile + "/" + path
+                    resp = await fetch(path);
                     text = await resp.text();
                 }
             }
@@ -49,16 +53,33 @@ export async function HuntConfig()
         }
         catch(e)
         {
-            // malformed json
+            // malformed config
         }
     }
 
-    return {path, text, json};
-}
+    let imports:ConfigCheck = {};
+    if(json && json.imports)
+    {
+        imports.json = json;
+        imports.text = JSON.stringify(json.imports);
+        imports.path = path;
+    }
+    else if(json && !json.imports && json.importMap)
+    {
+        try
+        {
+            imports.path = RootFile + "/" + json.importMap;
+            resp = await fetch(imports.path);
+            imports.text = await resp.text();
+            imports.json = JSONC(text);
+        }
+        catch(e)
+        {
+            // malformed import map
+        }
+    }
 
-export async function HuntImport()
-{
-
+    return [{path, text, json}, imports] as ConfigCheckPair
 }
 
 async function Prompt(question: string):Promise<string>
@@ -120,16 +141,16 @@ export async function Install(file:string, handler:(content:string)=>string = (s
     }
 }
 
-const config = await HuntConfig();
-if(!config.path)
+try
 {
-    const pathServer = import.meta.resolve("./");
-    try
+    let [config, imports] = await HuntConfig();
+    console.log(`1) Checking for Deno configuration...`)
+    if(!config.path)
     {
-        const resp1 = await Prompt("No Deno configuration found. Create one? [y/n]");
+        const resp1 = await Prompt(" ! No Deno configuration found. Create one? [y/n]");
         if(resp1 == "y")
         {
-            const resp2 = await Prompt("Do you also want to add starter files? [y/n]");
+            const resp2 = await Prompt(" ? Do you also want to add starter files? [y/n]");
             let replaceApp = "./path/to/app.tsx";
             let replaceApi = "./path/to/api.tsx";
             let replaceCommentApp = "// (required) module with default export ()=>React.JSX.Element";
@@ -144,6 +165,10 @@ if(!config.path)
                 await Install("app.tsx");
                 await Install("api.tsx");
             }
+            else
+            {
+                // config initialized with no app or api
+            }
 
             await Install("deno.jsonc", (s)=>s
                 .replace("{{server}}", RootHost)
@@ -152,20 +177,80 @@ if(!config.path)
                 .replace("{{commentApp}}", replaceCommentApp)
                 .replace("{{commentApi}}", replaceCommentApi)
             );
+
+            [config, imports] = await HuntConfig();
         }
         else
         {
-            throw("Config declined.");
+            throw(" X  Config is required.");
         }
-    }
-    catch(e)
-    {
-        console.log(e, "(Exiting...)");
-        Deno.exit();
-    }
-}
-else if(config.json)
-{
 
+    }
+
+/*
+const inputString = `Some text 'imports' more text { some content }`;
+const regex = /(?<=(['"`])imports\1[^{}]*{)/;
+
+const match = inputString.search(regex);
+
+if (match !== -1) {
+  console.log("Index of '{':", match);
+} else {
+  console.log("'{': Not found.");
 }
-console.log(config);
+*/
+
+    console.log(`2) Verifying configuration...`)
+    if(config.json && imports.json?.imports)
+    {
+        const importMap = imports.json.imports as Record<string, string>;
+        let changes = false;
+        if(!importMap["react"])
+        {
+            const resp = await Prompt(` ! Import map has no specifier for React. Add it now? (will use Preact compat) [y/n]`);
+            if(resp == "y")
+            {
+                importMap["react"] =  "https://esm.sh/preact@10.16.0/compat";
+                changes = true;
+            }
+            else
+            {
+                throw(" X  A React import is required.");
+            }
+        }
+        if(!importMap[">able/"])
+        {
+            const resp = await Prompt(` ! Import map has no specifier for Able (">able/"). Add it now? [y/n]`);
+            if(resp == "y")
+            {
+                importMap[">able/"] =  RootHost;
+                changes = true;
+            }
+            else
+            {
+                throw(" X  Able is required.");
+            }
+        }
+        
+        const compOpts = imports.json.compilerOptions as Record<string, string>;
+        if(compOpts)
+        {
+            const compJSX = compOpts["jsx"];
+            const compJSXImportSource = compOpts["jsxImportSource"]
+            if(compJSX || compJSXImportSource)
+            {
+                if(!importMap["react/"])
+                {
+                    //const resp = await Prompt(` ! Import map has no specifier for React ("react"). Add it now? [y/n]`);
+                }
+            }            
+        }
+
+
+    }
+}
+catch(e)
+{
+    console.log(e, "\n (Able Exiting...)");
+    Deno.exit();
+}
