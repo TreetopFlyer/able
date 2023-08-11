@@ -12,7 +12,7 @@
         "local": "deno run -A --reload=http://localhost:4507 --no-lock ./run-local.tsx --port=1234",
         "serve": "deno run -A --reload=http://localhost:4507 --no-lock ./run-serve.tsx --port=1234",
         "cloud": "deno run -A --reload=http://localhost:4507 --no-lock ./run-deploy.tsx",
-        "debug": "deno run -A --reload=http://localhost:4507 --no-lock --inspect-wait  ./run-serve.tsx --port=1234"
+        "debug": "deno run -A --no-lock --inspect-wait ./cli.tsx work --port=1234"
     },
 
     "compilerOptions":
