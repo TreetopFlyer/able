@@ -1,6 +1,16 @@
 {
-    "imports": {},
-
-    //imports?
-    
+	"imports": {
+		"react": "https://esm.sh/preact@10.16.0/compat",
+		"react/": "https://esm.sh/preact@10.16.0/compat/",
+		">able/": "file:///C:/Web%20Projects/able-baker/"
+	},
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"jsxImportSource": "react",
+		"lib": [
+			"deno.window",
+			"dom",
+			"dom.asynciterable"
+		]
+	}
 }

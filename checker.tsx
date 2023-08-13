@@ -29,6 +29,7 @@ export async function HuntConfig()
                 path = ".vscode/settings.json";
                 resp = await fetch(Root + "/" + path);
                 json = await resp.json();
+
                 path = json["deno.config"];
                 json = undefined;
                 if(path)
@@ -44,7 +45,7 @@ export async function HuntConfig()
         }
     }
 
-    if(text)
+    if(path)
     {
         try
         {
@@ -52,7 +53,6 @@ export async function HuntConfig()
         }
         catch(e)
         {
-            // malformed config
             json = undefined;
         }
     }
@@ -60,18 +60,27 @@ export async function HuntConfig()
     let imports:ConfigCheck = {};
     if(json && json.imports)
     {
+        // config.imports
         imports.json = json;
         imports.text = JSON.stringify(json);
         imports.path = path;
     }
     else if(json && !json.imports && json.importMap)
     {
+        // config.importMap
         try
         {
             imports.path = json.importMap;
             resp = await fetch(Root + "/" + imports.path);
             imports.text = await resp.text();
-            imports.json = JSONC(text);
+            try
+            {
+                imports.json = JSONC(imports.text);
+            }
+            catch(e)
+            {
+                imports.json = undefined;
+            }
         }
         catch(e)
         {
@@ -82,7 +91,7 @@ export async function HuntConfig()
     return [{path, text, json}, imports] as ConfigCheckPair
 }
 
-export async function Install(file:string, handler:(content:string)=>string = (s)=>s)
+export async function Install(file:string, overrideName?:string, handler?:(content:string)=>string)
 {
     const pathFile = RootHost + "install__/" + file;
 
@@ -99,135 +108,164 @@ export async function Install(file:string, handler:(content:string)=>string = (s
     {
         const resp = await fetch(pathFile);
         const text = await resp.text();
-        await Deno.writeTextFile(Deno.cwd()+"/"+file, handler(text));   
+        const name = overrideName || file;
+        await Deno.writeTextFile(Deno.cwd()+"/"+name, handler ? handler(text) : text);   
     }
 }
 
-
-
 export async function Check()
 {
-    console.info(`👷 Checking your project`);
     try
     {
         let [config, imports] = await HuntConfig();
+        //console.log(config, imports);
         if(!config.path)
         {
-            if(confirm("🚨🚧 No Deno configuration found. Create a new one?"))
-            {
-                await Install("deno.jsonc");
-
-                Check();
-                return;
-            }
-            else
-            {
-                throw("⛔ Configuration is required.");
-            }
+            console.log(`🛠️ No Deno configuration found. Creating "deno.jsonc" now.`);
+            await Deno.writeTextFile(Deno.cwd()+"/deno.jsonc", `{"imports":{}}`);   
+            Check();
+            return;
         }
-        
-        else if(!imports.json || !imports.json?.imports)
+        else if(!config.json)
         {
-            const resp = confirm(`🚨🔧 Configuration found, but has no import map. Fix it now?`);
-            if(resp)
+            if(confirm(`🚧 Deno configuration is malformed. Replace "${config.path}" with a new one?.`))
             {
-                const text = config.text||"";
-                const startBracket = text.indexOf("{");
-
-                config.text = `{
-    "imports": {}${startBracket < 0 ? "\n}\n" : ",\n"}` + text.substring(startBracket+1);
-                
-                await Deno.writeTextFile(Deno.cwd()+"/"+config.path, config.text); 
-
+                await Deno.writeTextFile(Deno.cwd()+"/"+config.path, `{"imports":{}}`);   
                 Check();
                 return;
-
             }
             else
             {
-                throw("⛔ Import maps are required.");
+                throw("⛔ Invalid configuration.");
             }
         }
+        else if(!imports.json)
+        {        
+            if(imports.path != config.path)
+            {
+                if(confirm(`🚧 External import map "${imports.path}" is missing or malformed. Replace it with defaults?.`))
+                {
+                    await Deno.writeTextFile(Deno.cwd()+"/"+imports.path, `{"imports":{}}`);   
+                    Check();
+                    return;
+                }
+                else
+                {
+                    throw("⛔ Invalid configuration.");
+                }
+            }
+        }
+        else if(!imports.json?.imports)
+        {
+            imports.json.imports = {};
+        }
 
-        if(config.json && imports.text && imports.json?.imports)
+        if(config.json && imports.json?.imports)
         {
             const importMap = imports.json.imports as Record<string, string>;
-            let changes = ``;
-
-            const match = imports.text.search(/(?<=(['"`])imports\1[^{}]*{)/);
-            const part1 = imports.text.substring(0, match);
-            const part2 = imports.text.substring(match);
-
-            const bake =async()=> await Deno.writeTextFile(Deno.cwd()+"/"+config.path, part1 + changes + part2); 
+            const bake =async(obj:ConfigCheck)=> await Deno.writeTextFile(Deno.cwd()+"/"+obj.path, JSON.stringify(obj.json, null, "\t")); 
 
             if(!importMap["react"])
             {
-                const resp = confirm(`🚨🔧 Import map has no specifier for React ("react"). Fix it now? (Will use Preact compat)`);
-                if(resp)
-                {
-                    changes += `"react": "https://esm.sh/preact@10.16.0/compat",\n`;
-                    if(!importMap["react/"])
-                    {
-                        changes += `"react/": "https://esm.sh/preact@10.16.0/compat/",\n`;
-                    }
-                    await bake(); 
-                }
-                else
-                {
-                    throw(`⛔ A React import ("react") is required.`);
-                }
+                console.log(`🛠️ Adding React import specifier ("react")`);
+                importMap["react"] = `https://esm.sh/preact@10.16.0/compat`;
+                importMap["react/"] = `https://esm.sh/preact@10.16.0/compat/`;
+                await bake(imports);
+                console.log(`🚦 NOTE: Deno will need to cache "react" for intellisense to work properly.`)
+
             }
             if(!importMap[">able/"])
             {
-                const resp = confirm(`🚨🔧 Import map has no specifier for Able (">able/"). Fix it now?`);
-                if(resp)
-                {
-                    changes += `">able/": "${RootHost}",\n`;
-                    await bake(); 
-                }
-                else
-                {
-                    throw(`⛔ The Able import (">able/") is required.`);
-                }
+                console.log(`🛠️ Adding Able import specifier (">able/").`);
+                importMap[">able/"] = `${RootHost}`;
+                await bake(imports); 
             }
+
             if(!importMap[">able/app.tsx"])
             {
-                const resp = confirm(`🚨🔧 Import map has no specifier for your starter app (">able/app.tsx"). Fix it now?`);
+                const resp = confirm(`🤔 OPTIONAL: Import map has no specifier for your starter app (">able/app.tsx"). Create one?`);
                 if(resp)
                 {
-                    changes += `">able/app.tsx": "./app.tsx",\n`;
-                    await bake(); 
+                    importMap[">able/app.tsx"] = `./app.tsx`;
+                    await bake(imports); 
                     await Install("app.tsx");
                 }
-                else
+            }
+            else
+            {
+                try
                 {
-                    throw(`⛔ The "starter app" import (">able/app.tsx") is required.`);
+                    const app = await import(importMap[">able/app.tsx"]);
+                    // @ts-ignore
+                    const result = app.default().$$typeof;
+                }
+                catch(e)
+                {
+                    console.log(e);
+                    if(confirm(`🚧 Your starter app ("${importMap[">able/app.tsx"]}") does not export a default function that returns VDOM nodes. Replace it?`))
+                    {
+                        await Install("app.tsx", importMap[">able/app.tsx"]);
+                    }
+                    else
+                    {
+                        throw("⛔ Starter app has incorrect export types.");
+                    }
                 }
             }
+
             if(!importMap[">able/api.tsx"])
             {
-                const resp = confirm(`🚨🔧 OPTIONAL: Import map has no specifier for your backend app (">able/api.tsx"). Fix it now?`);
+                const resp = confirm(`🤔 OPTIONAL: Import map has no specifier for your starter backend app (">able/api.tsx"). Create one?`);
                 if(resp)
                 {
-                    changes += `">able/api.tsx": "./api.tsx",\n`;
-                    await bake(); 
+                    importMap[">able/api.tsx"] = "./api.tsx";
+                    await bake(imports); 
                     await Install("api.tsx");
                 }
             }
-
-
-            const compOpts = imports.json.compilerOptions as Record<string, string>;
-            if(compOpts)
+            else
             {
-                const compJSX = compOpts["jsx"];
-                const compJSXImportSource = compOpts["jsxImportSource"]
-                if(compJSX || compJSXImportSource)
+                try
                 {
-                    if(!importMap["react/"])
+                    const api = await import(importMap[">able/api.tsx"]);
+                    const result = api.default(new Request(new URL("https://fake-deno-testing-domain.com/")));
+                }
+                catch(e)
+                {
+                    if(confirm(`🚧 Your starter backend app ("${importMap[">able/api.tsx"]}") does not export a default function that accepts a Request. Replace it?`))
                     {
-                        //const resp = await Prompt(` ! Import map has no specifier for React ("react"). Add it now? [y/n]`);
+                        await Install("api.tsx", importMap[">able/api.tsx"]);
                     }
-                }            
+                    else
+                    {
+                        throw("⛔ Starter backend app has incorrect export types.");
+                    }
+                }
+            }
+
+
+            const options = 
+            {
+                "lib": ["deno.window", "dom", "dom.asynciterable"],
+                "jsx": "react-jsx",
+                "jsxImportSource": "react"
+            }
+
+            const compOpts = config.json.compilerOptions as Record<string, string|string[]> || {};
+            const compJSX = compOpts.jsx == options.jsx;
+            const compJSXImportSource = compOpts.jsxImportSource == options.jsxImportSource;
+            const compLib:string[] = compOpts.lib as string[] || [];
+            let compLibHasAll = true;
+            options.lib.forEach(item=> !compLib.includes(item) && (compLibHasAll = false))
+
+            if(!compOpts || !compJSX || !compJSXImportSource || !compLibHasAll)
+            {
+                console.log(`🛠️ Adding values to "compilerOptions" configuration.`);
+                compOpts.jsx = options.jsx;
+                compOpts.jsxImportSource = options.jsxImportSource;
+                compOpts.lib = [...compLib, ...options.lib];
+                config.json.compilerOptions = compOpts;
+                await bake(config);
             }
 
 
@@ -241,6 +279,5 @@ export async function Check()
     console.log(`🚗 Good to go!`);
 
 }
-
 
 Check();

@@ -8,7 +8,7 @@
         "react":"https://esm.sh/preact@10.15.1/compat",
         "react/":"https://esm.sh/preact@10.15.1/compat/",
         "react-original":"https://esm.sh/preact@10.15.1/compat",
-        ">able/": "http://localhost:4507/"
+
     },
     "tasks":
     {
