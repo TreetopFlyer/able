@@ -1,0 +1,8 @@
+{
+  "version": "2",
+  "remote": {
+    "https://deno.land/x/jsonct@v0.1.0/mod.ts": "dba7e7f3529be6369f5c718e3a18b69f15ffa176006d2a7565073ce6c5bd9f3f",
+    "https://deno.land/x/jsonct@v0.1.0/src/_util/asserts.ts": "178dfc49a464aee693a7e285567b3d0b555dc805ff490505a8aae34f9cfb1462",
+    "https://deno.land/x/jsonct@v0.1.0/src/parse.ts": "a3a016822446b0584b40bae9098df480db5590a9915c9e3c623ba2801cf1b8df"
+  }
+}
