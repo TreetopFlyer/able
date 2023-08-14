@@ -183,8 +183,7 @@ export async function Check()
 
             if(!importMap[">able/app.tsx"])
             {
-                const resp = confirm(`🤔 OPTIONAL: Import map has no specifier for your starter app (">able/app.tsx"). Create one?`);
-                if(resp)
+                if(confirm(`🤔 OPTIONAL: Your import map does not override the default/empty FRONT-END app with the specifier ">able/app.tsx". Create this file and add the specifier?`))
                 {
                     importMap[">able/app.tsx"] = `./app.tsx`;
                     await bake(imports); 
@@ -202,21 +201,20 @@ export async function Check()
                 catch(e)
                 {
                     console.log(e);
-                    if(confirm(`🚧 Your starter app ("${importMap[">able/app.tsx"]}") does not export a default function that returns VDOM nodes. Replace it?`))
+                    if(confirm(`🚧 Your FRONT-END app ("${importMap[">able/app.tsx"]}") does not export a default function that returns VDOM nodes. Replace it?`))
                     {
                         await Install("app.tsx", importMap[">able/app.tsx"]);
                     }
                     else
                     {
-                        throw("⛔ Starter app has incorrect export types.");
+                        throw("⛔ Your FRONT-END app has incorrect export types.");
                     }
                 }
             }
 
             if(!importMap[">able/api.tsx"])
             {
-                const resp = confirm(`🤔 OPTIONAL: Import map has no specifier for your starter backend app (">able/api.tsx"). Create one?`);
-                if(resp)
+                if(confirm(`🤔 OPTIONAL: Your import map does not override the default/empty BACK-END api with the specifier ">able/api.tsx". Create this file and add the specifier?`))
                 {
                     importMap[">able/api.tsx"] = "./api.tsx";
                     await bake(imports); 

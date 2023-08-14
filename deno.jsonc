@@ -2,7 +2,8 @@
 	"imports": {
 		"react": "https://esm.sh/preact@10.16.0/compat",
 		"react/": "https://esm.sh/preact@10.16.0/compat/",
-		">able/": "file:///C:/Web%20Projects/able-baker/"
+		">able/": "file:///C:/Web%20Projects/able-baker/",
+		">able/app.tsx": "./app.tsx"
 	},
 	"compilerOptions": {
 		"jsx": "react-jsx",
