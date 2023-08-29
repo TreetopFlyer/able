@@ -2,8 +2,15 @@
 	"imports": {
 		"react": "https://esm.sh/preact@10.16.0/compat",
 		"react/": "https://esm.sh/preact@10.16.0/compat/",
-		">able/": "file:///C:/Web%20Projects/able-baker/",
+		">able/": "http://localhost:4507/",
 		">able/app.tsx": "./app.tsx"
+	},
+	"tasks": {
+		"check": "deno run -A --no-lock http://localhost:4507/cli.tsx check",
+		"local": "deno run -A --no-lock http://localhost:4507/cli.tsx local",
+		"debug": "deno run -A --no-lock http://localhost:4507/cli.tsx debug",
+		"serve": "deno run -A --no-lock http://localhost:4507/cli.tsx serve",
+		"cloud": "deno run -A --no-lock http://localhost:4507/cli.tsx cloud"
 	},
 	"compilerOptions": {
 		"jsx": "react-jsx",

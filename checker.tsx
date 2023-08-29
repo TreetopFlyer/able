@@ -115,9 +115,12 @@ export async function Install(file:string, overrideName?:string, handler?:(conte
 
 export async function Check()
 {
+    let [config, imports] = await HuntConfig();
+    console.log(`Checking directory "${Root}"`);
+    console.log("Found", config, imports);
     try
     {
-        let [config, imports] = await HuntConfig();
+        
         //console.log(config, imports);
         if(!config.path)
         {
@@ -181,63 +184,25 @@ export async function Check()
                 await bake(imports); 
             }
 
-            if(!importMap[">able/app.tsx"])
-            {
-                if(confirm(`🤔 OPTIONAL: Your import map does not override the default/empty FRONT-END app with the specifier ">able/app.tsx". Create this file and add the specifier?`))
-                {
-                    importMap[">able/app.tsx"] = `./app.tsx`;
-                    await bake(imports); 
-                    await Install("app.tsx");
-                }
-            }
-            else
-            {
-                try
-                {
-                    const app = await import(importMap[">able/app.tsx"]);
-                    // @ts-ignore
-                    const result = app.default().$$typeof;
-                }
-                catch(e)
-                {
-                    console.log(e);
-                    if(confirm(`🚧 Your FRONT-END app ("${importMap[">able/app.tsx"]}") does not export a default function that returns VDOM nodes. Replace it?`))
-                    {
-                        await Install("app.tsx", importMap[">able/app.tsx"]);
-                    }
-                    else
-                    {
-                        throw("⛔ Your FRONT-END app has incorrect export types.");
-                    }
-                }
-            }
+            const tasks:Record<string, string> = {
+                "check": `deno run -A --no-lock ${RootHost}cli.tsx check`,
+                "local": `deno run -A --no-lock ${RootHost}cli.tsx local`,
+                "debug": `deno run -A --no-lock ${RootHost}cli.tsx debug`,
+                "serve": `deno run -A --no-lock ${RootHost}cli.tsx serve`,
+                "cloud": `deno run -A --no-lock ${RootHost}cli.tsx cloud`        
+            };
 
-            if(!importMap[">able/api.tsx"])
+            const confTasks = (config.json.tasks || {}) as Record<string, string>;
+            for(const key in tasks)
             {
-                if(confirm(`🤔 OPTIONAL: Your import map does not override the default/empty BACK-END api with the specifier ">able/api.tsx". Create this file and add the specifier?`))
+                if(tasks[key] !== confTasks[key])
                 {
-                    importMap[">able/api.tsx"] = "./api.tsx";
-                    await bake(imports); 
-                    await Install("api.tsx");
-                }
-            }
-            else
-            {
-                try
-                {
-                    const api = await import(importMap[">able/api.tsx"]);
-                    const result = api.default(new Request(new URL("https://fake-deno-testing-domain.com/")));
-                }
-                catch(e)
-                {
-                    if(confirm(`🚧 Your starter backend app ("${importMap[">able/api.tsx"]}") does not export a default function that accepts a Request. Replace it?`))
+                    if(confirm(`🤔 OPTIONAL: The tasks defined in your config contain missing or modified values. Update tasks?`))
                     {
-                        await Install("api.tsx", importMap[">able/api.tsx"]);
+                        config.json.tasks = {...confTasks, ...tasks};
+                        await bake(config);
                     }
-                    else
-                    {
-                        throw("⛔ Starter backend app has incorrect export types.");
-                    }
+                    break;
                 }
             }
 
@@ -267,6 +232,70 @@ export async function Check()
             }
 
 
+            if(!importMap[">able/app.tsx"])
+            {
+                if(confirm(`🤔 OPTIONAL: Your import map does not override the default/empty FRONT-END app with the specifier ">able/app.tsx". Create this file and add the specifier?`))
+                {
+                    importMap[">able/app.tsx"] = `./app.tsx`;
+                    await bake(imports); 
+                    await Install("app.tsx");
+                }
+            }
+            else
+            {
+                /*
+                try
+                {
+                    const app = await import(importMap[">able/app.tsx"]);
+                    // @ts-ignore
+                    const result = app.default().$$typeof;
+                }
+                catch(e)
+                {
+                    console.log(e);
+                    if(confirm(`🚧 Your FRONT-END app ("${importMap[">able/app.tsx"]}") does not export a default function that returns VDOM nodes. Replace it?`))
+                    {
+                        await Install("app.tsx", importMap[">able/app.tsx"]);
+                    }
+                    else
+                    {
+                        throw("⛔ Your FRONT-END app has incorrect export types.");
+                    }
+                }
+                */
+            }
+
+            if(!importMap[">able/api.tsx"])
+            {
+                if(confirm(`🤔 OPTIONAL: Your import map does not override the default/empty BACK-END api with the specifier ">able/api.tsx". Create this file and add the specifier?`))
+                {
+                    importMap[">able/api.tsx"] = "./api.tsx";
+                    await bake(imports); 
+                    await Install("api.tsx");
+                }
+            }
+            else
+            {
+                /*
+                try
+                {
+                    const api = await import(importMap[">able/api.tsx"]);
+                    const result = api.default(new Request(new URL("https://fake-deno-testing-domain.com/")));
+                }
+                catch(e)
+                {
+                    if(confirm(`🚧 Your starter backend app ("${importMap[">able/api.tsx"]}") does not export a default function that accepts a Request. Replace it?`))
+                    {
+                        await Install("api.tsx", importMap[">able/api.tsx"]);
+                    }
+                    else
+                    {
+                        throw("⛔ Starter backend app has incorrect export types.");
+                    }
+                }
+                */
+            }
+
         }
     }
     catch(e)
@@ -277,5 +306,3 @@ export async function Check()
     console.log(`🚗 Good to go!`);
 
 }
-
-Check();

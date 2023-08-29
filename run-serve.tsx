@@ -17,16 +17,6 @@ const ImportMapReload =async()=>
 
     if(imports)
     {
-        if(imports["react"])
-        {
-            console.log(`"react" specifier not defined in import map`);
-
-        }
-        else if(!imports["react/"])
-        {
-            imports["react/"] = imports["react"]+"/";
-        }
-
         ImportMapProxies = {};
         Object.entries(imports).forEach(([key, value])=>
         {

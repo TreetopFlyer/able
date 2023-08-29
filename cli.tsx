@@ -35,7 +35,6 @@ const collect =async(inKey:string, inArg:Record<string, string>, inEnv:Record<st
     return scanUser;
 };
 
-
 export async function SubProcess(args:string[])
 {
     const command = new Deno.Command(
@@ -61,24 +60,40 @@ export async function SubProcess(args:string[])
     // manually close stdin
     child.stdin.close();
     const status = await child.status;    
+    
+    return status;
 }
 
 if(arg._.length)
 {
 
     const [config, imports] = await HuntConfig();
-
+    
     switch(arg._[0])
     {
-        case "work" :
+        case "check" :
+        case "setup" :
+        {
+            await Check();
+            break;
+        }
+
+        case "local" :
         {
             await SubProcess(["run", `--config=${config.path}`, RootHost+"run.tsx", "--dev", ...Deno.args]);
+            break;
         }
-        case "host" :
+        case "debug" :
+        {
+            await SubProcess(["run", `--config=${config.path}`, `--inspect-brk`, RootHost+"run.tsx", "--dev", ...Deno.args]);
+            break;
+        }
+        case "serve" :
         {
             await SubProcess(["run", `--config=${config.path}`, RootHost+"run.tsx", ...Deno.args]);
+            break;
         }
-        case "push" :
+        case "cloud" :
         {
             let useToken = await collect("DENO_DEPLOY_TOKEN", arg, env);
             let useProject = await collect("DENO_DEPLOY_PROJECT", arg, env);
