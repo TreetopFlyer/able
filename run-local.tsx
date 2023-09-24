@@ -16,6 +16,10 @@ Configure({
             {
                 syntax: "typescript",
                 tsx: true,
+            },
+            transform:
+            {
+                react: { runtime: "automatic" }
             }
         }
     },

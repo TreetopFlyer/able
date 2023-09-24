@@ -1,19 +1,20 @@
 {
     "compilerOptions": { "lib": ["deno.window", "dom"],
         "jsx": "react-jsx",
-        "jsxImportSource": "https://esm.sh/preact@10.15.1/compat"
+        "jsxImportSource": "react"
     },
     "imports":
     {
         "react":"https://esm.sh/preact@10.15.1/compat",
+        "react/":"https://esm.sh/preact@10.15.1/compat/",
         "react-original":"https://esm.sh/preact@10.15.1/compat",
-        "able/": "http://localhost:4507/"
+
     },
     "tasks":
     {
         "local": "deno run -A --reload=http://localhost:4507 --no-lock ./run-local.tsx --port=1234",
         "serve": "deno run -A --reload=http://localhost:4507 --no-lock ./run-serve.tsx --port=1234",
-        "debug": "deno run -A --reload=http://localhost:4507 --inspect-wait --no-lock ./run-serve.tsx --port=1234",
-        "deploy":"deno run -A --no-lock --reload=http://localhost:4507 http://localhost:4507/run-deploy.tsx"
+        "cloud": "deno run -A --reload=http://localhost:4507 --no-lock ./run-deploy.tsx",
+        "debug": "deno run -A --reload=http://localhost:4507 --no-lock --inspect-wait  ./run-serve.tsx --port=1234",
     }
 }

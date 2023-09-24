@@ -1,70 +1,51 @@
 import * as MIME from "https://deno.land/std@0.180.0/media_types/mod.ts";
 import * as SWCW from "https://esm.sh/@swc/wasm-web@1.3.62";
-
+import { HuntConfig } from "./checker.tsx";
 import CustomServe from ">able/api.tsx"; 
 
 export const Root = new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString();
 
 type DenoConfig = {imports:Record<string, string>};
 const ImportMap:DenoConfig = {imports:{}};
-let ImportMapOriginal = {};
 let ImportMapProxies:Record<string, string> = {};
+
 const ImportMapReload =async()=>
 {
-    let json:DenoConfig;
-    const path = Root+"/deno.json";
-    try
-    {
-        const resp = await fetch(path);
-        json = await resp.json();
-        if(!json?.imports)
-        { throw new Error("imports not specified in deno.json") }
-        ImportMapOriginal = json;
-    }
-    catch(e)
-    {
-        console.log(`error reading deno config "${path}" message:"${e}"`);
-        return;
-    }
+    const [, {json, path}] = await HuntConfig();
+    const imports = (json as DenoConfig).imports;
 
-    if(!json.imports["react"])
+    if(imports)
     {
-        console.log(`"react" specifier not defined in import map`);
-    }
-    else if(!json.imports["react/"])
-    {
-        json.imports["react/"] = json.imports["react"]+"/";
-    }
-
-    if(!json.imports["able:app"])
-    {
-        console.log(`"able:app" specifier not defined in import map.`);
-    }
-
-
-    ImportMapProxies = {};
-    Object.entries(json.imports).forEach(([key, value])=>
-    {
-        if(value.startsWith("./"))
-        {
-            json.imports[key] = value.substring(1);
-        }
-        if(key.startsWith(">"))
+        ImportMapProxies = {};
+        Object.entries(imports).forEach(([key, value])=>
         {
             if(value.startsWith("./"))
             {
-                ImportMapProxies[encodeURI(key)] = value.substring(1);
-                json.imports[key] = value.substring(1); 
+                imports[key] = value.substring(1);
             }
-            else
+            if(key.startsWith(">"))
             {
-                ImportMapProxies["/"+encodeURI(key)] = value;
-                json.imports[key] = "/"+key;    
+                if(value.startsWith("./"))
+                {
+                    ImportMapProxies[encodeURI(key)] = value.substring(1);
+                    imports[key] = value.substring(1); 
+                }
+                else
+                {
+                    ImportMapProxies["/"+encodeURI(key)] = value;
+                    imports[key] = "/"+key;    
+                }
             }
-        }
-    });
+        });
 
-    ImportMap.imports = Configuration.Remap(json.imports, Configuration);
+        ImportMap.imports = Configuration.Remap(imports, Configuration);
+
+    }
+    else
+    {
+
+    }
+
 };
 
 export type CustomHTTPHandler = (inReq:Request, inURL:URL, inExt:string|false, inMap:{imports:Record<string, string>}, inConfig:Configuration)=>void|false|Response|Promise<Response|void|false>;
@@ -266,16 +247,15 @@ export default async()=>
     if(running){return};
     running = true;
     
-    await ImportMapReload();
     try
     {
+        await ImportMapReload();
         await SWCW.default();
     }
     catch(e)
     {
         console.log("swc init error:", e);
     }
-    
     
     const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(req: Request)=>
     {
