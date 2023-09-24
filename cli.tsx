@@ -68,7 +68,9 @@ if(arg._.length)
 {
 
     const [config, imports] = await HuntConfig();
-    
+
+    console.log("able subprocesses running with ", config.path);
+
     switch(arg._[0])
     {
         case "check" :
@@ -80,17 +82,19 @@ if(arg._.length)
 
         case "local" :
         {
-            await SubProcess(["run", `--config=${config.path}`, RootHost+"run.tsx", "--dev", ...Deno.args]);
+            await SubProcess(["run", `-A`, `--no-lock`, `--config=${config.path}`, RootHost+"run.tsx", "--dev", ...Deno.args]);
             break;
         }
         case "debug" :
         {
-            await SubProcess(["run", `--config=${config.path}`, `--inspect-brk`, RootHost+"run.tsx", "--dev", ...Deno.args]);
+            await SubProcess(["run", `-A`, `--no-lock`, `--config=${config.path}`, `--inspect-brk`, RootHost+"run.tsx", "--dev", ...Deno.args]);
             break;
         }
         case "serve" :
         {
-            await SubProcess(["run", `--config=${config.path}`, RootHost+"run.tsx", ...Deno.args]);
+            const args = ["run", `-A`, `--no-lock`, `--config=${config.path}`, RootHost+"run.tsx", ...Deno.args];
+            console.log("args are", args);
+            await SubProcess(args);
             break;
         }
         case "cloud" :
@@ -122,6 +126,11 @@ if(arg._.length)
                 RootHost+"run.tsx",
                 ...scanProd,
                 ...Deno.args]);
+        }
+        case "upgrade" :
+        {
+            await SubProcess(["install", `-A`, `-r`, `-f`, `--no-lock`, `--config=${config.path}`, RootHost+"cli.tsx", ...Deno.args]);
+            break;
         }
     }
 }

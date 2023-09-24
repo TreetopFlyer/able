@@ -7,6 +7,7 @@ export const RootHost = import.meta.resolve("./");
 export const Root = new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString();
 export async function HuntConfig()
 {
+    console.log("hunting in", Root);
     let path:string, resp:Response, text="", json;
     try
     {
@@ -116,16 +117,14 @@ export async function Install(file:string, overrideName?:string, handler?:(conte
 export async function Check()
 {
     let [config, imports] = await HuntConfig();
-    console.log(`Checking directory "${Root}"`);
-    console.log("Found", config, imports);
     try
     {
         
         //console.log(config, imports);
         if(!config.path)
         {
-            console.log(`🛠️ No Deno configuration found. Creating "deno.jsonc" now.`);
-            await Deno.writeTextFile(Deno.cwd()+"/deno.jsonc", `{"imports":{}}`);   
+            console.log(`🛠️ No Deno configuration found. Creating "deno.json" now.`);
+            await Deno.writeTextFile(Deno.cwd()+"/deno.json", `{"imports":{}}`);   
             Check();
             return;
         }
@@ -168,20 +167,22 @@ export async function Check()
             const importMap = imports.json.imports as Record<string, string>;
             const bake =async(obj:ConfigCheck)=> await Deno.writeTextFile(Deno.cwd()+"/"+obj.path, JSON.stringify(obj.json, null, "\t")); 
 
-            if(!importMap["react"])
+            importMap["react"] = `https://esm.sh/preact@10.17.1/compat`;
+            importMap["react/"] = `https://esm.sh/preact@10.17.1/compat/`;
+            importMap["@preact/signals"] = `https://esm.sh/@preact/signals@1.2.1`;
+            importMap[">able/"] = `${RootHost}`;
+            if(!importMap[">able/app.tsx"])
             {
-                console.log(`🛠️ Adding React import specifier ("react")`);
-                importMap["react"] = `https://esm.sh/preact@10.16.0/compat`;
-                importMap["react/"] = `https://esm.sh/preact@10.16.0/compat/`;
-                await bake(imports);
-                console.log(`🚦 NOTE: Deno will need to cache "react" for intellisense to work properly.`)
-
+                importMap[">able/app.tsx"] = `./app.tsx`;
+                await Install("app.tsx");
             }
-            if(!importMap[">able/"])
+            if(!importMap[">able/api.tsx"])
             {
-                console.log(`🛠️ Adding Able import specifier (">able/").`);
-                importMap[">able/"] = `${RootHost}`;
-                await bake(imports); 
+                if(confirm(`🤔 OPTIONAL: Add backend ">able/api.tsx"?`))
+                {
+                    importMap[">able/api.tsx"] = "./api.tsx";
+                    await Install("api.tsx");
+                }
             }
 
             const tasks:Record<string, string> = {
@@ -191,21 +192,8 @@ export async function Check()
                 "serve": `deno run -A --no-lock ${RootHost}cli.tsx serve`,
                 "cloud": `deno run -A --no-lock ${RootHost}cli.tsx cloud`        
             };
-
             const confTasks = (config.json.tasks || {}) as Record<string, string>;
-            for(const key in tasks)
-            {
-                if(tasks[key] !== confTasks[key])
-                {
-                    if(confirm(`🤔 OPTIONAL: The tasks defined in your config contain missing or modified values. Update tasks?`))
-                    {
-                        config.json.tasks = {...confTasks, ...tasks};
-                        await bake(config);
-                    }
-                    break;
-                }
-            }
-
+            config.json.tasks = {...confTasks, ...tasks};
 
             const options = 
             {
@@ -213,89 +201,15 @@ export async function Check()
                 "jsx": "react-jsx",
                 "jsxImportSource": "react"
             }
-
             const compOpts = config.json.compilerOptions as Record<string, string|string[]> || {};
-            const compJSX = compOpts.jsx == options.jsx;
-            const compJSXImportSource = compOpts.jsxImportSource == options.jsxImportSource;
             const compLib:string[] = compOpts.lib as string[] || [];
-            let compLibHasAll = true;
-            options.lib.forEach(item=> !compLib.includes(item) && (compLibHasAll = false))
+            compOpts.jsx = options.jsx;
+            compOpts.jsxImportSource = options.jsxImportSource;
+            compOpts.lib = [...compLib, ...options.lib];
+            config.json.compilerOptions = compOpts;
 
-            if(!compOpts || !compJSX || !compJSXImportSource || !compLibHasAll)
-            {
-                console.log(`🛠️ Adding values to "compilerOptions" configuration.`);
-                compOpts.jsx = options.jsx;
-                compOpts.jsxImportSource = options.jsxImportSource;
-                compOpts.lib = [...compLib, ...options.lib];
-                config.json.compilerOptions = compOpts;
-                await bake(config);
-            }
-
-
-            if(!importMap[">able/app.tsx"])
-            {
-                if(confirm(`🤔 OPTIONAL: Your import map does not override the default/empty FRONT-END app with the specifier ">able/app.tsx". Create this file and add the specifier?`))
-                {
-                    importMap[">able/app.tsx"] = `./app.tsx`;
-                    await bake(imports); 
-                    await Install("app.tsx");
-                }
-            }
-            else
-            {
-                /*
-                try
-                {
-                    const app = await import(importMap[">able/app.tsx"]);
-                    // @ts-ignore
-                    const result = app.default().$$typeof;
-                }
-                catch(e)
-                {
-                    console.log(e);
-                    if(confirm(`🚧 Your FRONT-END app ("${importMap[">able/app.tsx"]}") does not export a default function that returns VDOM nodes. Replace it?`))
-                    {
-                        await Install("app.tsx", importMap[">able/app.tsx"]);
-                    }
-                    else
-                    {
-                        throw("⛔ Your FRONT-END app has incorrect export types.");
-                    }
-                }
-                */
-            }
-
-            if(!importMap[">able/api.tsx"])
-            {
-                if(confirm(`🤔 OPTIONAL: Your import map does not override the default/empty BACK-END api with the specifier ">able/api.tsx". Create this file and add the specifier?`))
-                {
-                    importMap[">able/api.tsx"] = "./api.tsx";
-                    await bake(imports); 
-                    await Install("api.tsx");
-                }
-            }
-            else
-            {
-                /*
-                try
-                {
-                    const api = await import(importMap[">able/api.tsx"]);
-                    const result = api.default(new Request(new URL("https://fake-deno-testing-domain.com/")));
-                }
-                catch(e)
-                {
-                    if(confirm(`🚧 Your starter backend app ("${importMap[">able/api.tsx"]}") does not export a default function that accepts a Request. Replace it?`))
-                    {
-                        await Install("api.tsx", importMap[">able/api.tsx"]);
-                    }
-                    else
-                    {
-                        throw("⛔ Starter backend app has incorrect export types.");
-                    }
-                }
-                */
-            }
-
+            await bake(imports);
+            await bake(config);
         }
     }
     catch(e)

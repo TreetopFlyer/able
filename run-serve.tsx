@@ -5,7 +5,6 @@ import CustomServe from ">able/api.tsx";
 
 export const Root = new URL(`file://${Deno.cwd().replaceAll("\\", "/")}`).toString();
 
-
 type DenoConfig = {imports:Record<string, string>};
 const ImportMap:DenoConfig = {imports:{}};
 let ImportMapProxies:Record<string, string> = {};
@@ -248,16 +247,15 @@ export default async()=>
     if(running){return};
     running = true;
     
-    await ImportMapReload();
     try
     {
+        await ImportMapReload();
         await SWCW.default();
     }
     catch(e)
     {
         console.log("swc init error:", e);
     }
-    
     
     const server = Deno.serve({port:parseInt(Deno.env.get("port")||"8000")}, async(req: Request)=>
     {
