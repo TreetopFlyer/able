@@ -170,6 +170,7 @@ export async function Check()
             importMap["react"] = `https://esm.sh/preact@10.17.1/compat`;
             importMap["react/"] = `https://esm.sh/preact@10.17.1/compat/`;
             importMap["@preact/signals"] = `https://esm.sh/@preact/signals@1.2.1`;
+            importMap["@twind/core"] = `https://esm.sh/@twind/core@1.1.3`;
             importMap[">able/"] = `${RootHost}`;
             if(!importMap[">able/app.tsx"])
             {

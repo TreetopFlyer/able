@@ -123,9 +123,10 @@ if(arg._.length)
                 `--project=${useProject}`,
                 `--token=${useToken}`,
                 `--import-map=${imports.path}`,
-                RootHost+"run.tsx",
+                
                 ...scanProd,
-                ...Deno.args]);
+                ...Deno.args,
+                RootHost+"run.tsx"]);
         }
         case "upgrade" :
         {

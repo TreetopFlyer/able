@@ -1,5 +1,5 @@
 import React from "react";
-import * as TW from   "https://esm.sh/v126/@twind/core@1.1.3/es2022/core.mjs";
+import * as TW from   "@twind/core";
 import TWPreTail from "https://esm.sh/v126/@twind/preset-tailwind@1.1.3/es2022/preset-tailwind.mjs";
 import TWPreAuto from "https://esm.sh/v126/@twind/preset-autoprefix@1.0.7/es2022/preset-autoprefix.mjs";
 
