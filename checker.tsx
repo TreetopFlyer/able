@@ -196,18 +196,30 @@ export async function Check()
             const confTasks = (config.json.tasks || {}) as Record<string, string>;
             config.json.tasks = {...confTasks, ...tasks};
 
-            const options = 
+            const optionsRequired = 
             {
-                "lib": ["deno.window", "dom", "dom.asynciterable"],
+                "lib": ["deno.window", "dom", "dom.iterable", "dom.asynciterable"],
                 "jsx": "react-jsx",
                 "jsxImportSource": "react"
             }
-            const compOpts = config.json.compilerOptions as Record<string, string|string[]> || {};
-            const compLib:string[] = compOpts.lib as string[] || [];
-            compOpts.jsx = options.jsx;
-            compOpts.jsxImportSource = options.jsxImportSource;
-            compOpts.lib = [...compLib, ...options.lib];
-            config.json.compilerOptions = compOpts;
+            const optionsCurrent = config.json.compilerOptions as Record<string, string|string[]> || {};
+            //const compLib:string[] = compOpts.lib as string[] || [];
+
+            if(!optionsCurrent.lib)
+            {
+                optionsCurrent.lib = [];
+            }
+            optionsRequired.lib.forEach(s=>
+            {
+                if(!optionsCurrent.lib.includes(s))
+                {
+                    (optionsCurrent.lib as string[]).push(s);
+                }
+            });
+
+            optionsCurrent.jsx = optionsRequired.jsx;
+            optionsCurrent.jsxImportSource = optionsRequired.jsxImportSource;
+            config.json.compilerOptions = optionsCurrent;
 
             await bake(imports);
             await bake(config);
