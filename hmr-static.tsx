@@ -65,7 +65,7 @@ const findNextExport =(inFile:string, inIndex=0, inLocal:Array<string>, inForeig
                 }
                 else
                 {
-                    const members = inFile.substring(nextCharInd+1, endBracketInd);
+                    const members = inFile.substring(nextCharInd+1, endBracketInd).replace(/\s/g, '');
                     members.split(",").forEach(part=>
                     {
                         const renamed = part.split(" as ");
