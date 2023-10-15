@@ -74,7 +74,7 @@ let Configuration:Configuration =
                 </head>
                 <body>
                     <div id="app"></div>
-                    <script type="importmap">${JSON.stringify(inMap)}</script>
+                    <script type="importmap">${JSON.stringify(inMap, null, " ")}</script>
                     <script type="module">
                         import Mount from ">able/run-browser.tsx";
                         Mount("#app", "${inConfig.Start}");

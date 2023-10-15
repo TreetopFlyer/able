@@ -1,8 +1,10 @@
 {
 	"imports": {
 		"react": "https://esm.sh/preact@10.17.1/compat",
+		"react-original": "https://esm.sh/preact@10.17.1/compat",
 		"react/": "https://esm.sh/preact@10.17.1/compat/",
 		"@preact/signals": "https://esm.sh/@preact/signals@1.2.1",
+		"signals-original": "https://esm.sh/@preact/signals@1.2.1",
 		"@twind/core": "https://esm.sh/@twind/core@1.1.3",
 		">able/": "http://localhost:4507/",
 		">able/app.tsx": "./app.tsx"

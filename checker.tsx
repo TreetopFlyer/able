@@ -167,8 +167,8 @@ export async function Check()
             const importMap = imports.json.imports as Record<string, string>;
             const bake =async(obj:ConfigCheck)=> await Deno.writeTextFile(Deno.cwd()+"/"+obj.path, JSON.stringify(obj.json, null, "\t")); 
 
-            importMap["react"] = `https://esm.sh/preact@10.17.1/compat`;
-            importMap["react/"] = `https://esm.sh/preact@10.17.1/compat/`;
+            importMap["react"] = `https://esm.sh/preact@10.18.1/compat`;
+            importMap["react/"] = `https://esm.sh/preact@10.18.1/compat/`;
             importMap["@preact/signals"] = `https://esm.sh/@preact/signals@1.2.1`;
             importMap["@twind/core"] = `https://esm.sh/@twind/core@1.1.3`;
             importMap[">able/"] = `${RootHost}`;

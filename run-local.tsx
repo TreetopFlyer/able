@@ -29,7 +29,7 @@ Configure({
         inImports["react"] = `/>able/hmr-react.tsx`;
 
         inImports["signals-original"] = inImports["@preact/signals"];
-        inImports["@preact/signals"] = `/>able/hmr-signals.tsx`;
+        inImports["@preact/signals"] = `/>able/hmr-signal.tsx`;
 
         return inImports;
     },
