@@ -127,6 +127,8 @@ if(arg._.length)
                 ...scanProd,
                 ...Deno.args,
                 RootHost+"run.tsx"]);
+
+            break;
         }
         case "upgrade" :
         {
