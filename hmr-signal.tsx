@@ -1,37 +1,46 @@
 import * as SignalsParts from "signals-original";
 
-type Entry = [signal:SignalsParts.Signal<unknown>, initArg:unknown];
+type Entry<T> = [signal:SignalsParts.Signal<T>, initArg:T];
 
-let recordEntry:Entry[] = [];
-let recordEntryNew:Entry[] = [];
-let recordIndex = 0;
-export const recordIndexReset =()=> recordIndex = 0;
-export const recordEntrySwap =()=>
+function ProxyGroup<T>(inFunc:(initArg:T)=>SignalsParts.Signal<T>)
 {
-    recordEntry = recordEntryNew;
-    recordEntryNew = [] as Entry[];
-};
-const proxySignal =(arg)=>
-{
-    const lookupOld = recordEntry[recordIndex];
-    if(lookupOld && lookupOld[1] === arg)
+    let recordEntry:Entry<T>[] = [];
+    let recordEntryNew:Entry<T>[] = [];
+    let recordIndex = 0;
+    const reset =()=> recordIndex = 0;
+    const swap =()=>
     {
-        recordEntryNew[recordIndex] = lookupOld;
-        recordIndex++;
-        return lookupOld[0];
-    }
-    else
+        recordEntry = recordEntryNew;
+        recordEntryNew = [] as Entry<T>[];
+    };
+    const proxy =(arg:T)=>
     {
-        const sig = SignalsParts.signal(arg);
-        recordEntryNew[recordIndex] = [sig, arg];
-        recordEntry[recordIndex] = [sig, arg];
-        recordIndex++;
-        return sig;
-    }
-};
+        const lookupOld = recordEntry[recordIndex];
+        if(lookupOld && lookupOld[1] === arg)
+        {
+            recordEntryNew[recordIndex] = lookupOld;
+            recordIndex++;
+            return lookupOld[0];
+        }
+        else
+        {
+            const sig = inFunc(arg);
+            recordEntryNew[recordIndex] = [sig, arg];
+            recordEntry[recordIndex] = [sig, arg];
+            recordIndex++;
+            return sig;
+        }
+    };
+    return {reset, swap, proxy};
+}
 
+export const GroupSignal = ProxyGroup(SignalsParts.signal);
+export const GroupSignalHook = ProxyGroup(SignalsParts.useSignal);
+
+
+const proxySignal = GroupSignal.proxy;
+const proxySignalHook = GroupSignalHook.proxy;
 
 export * from "signals-original";
-export { proxySignal as signal };
-// ? export {ProxyCreate as createElement, ProxyState as useState, ProxyReducer as useReducer };
-// ? export default {...ReactParts, createElement:ProxyCreate, useState:ProxyState, useReducer:ProxyReducer};
+export { proxySignal as signal, proxySignalHook as useSignal };
+export default {...SignalsParts, signal:proxySignal, useSignal:proxySignalHook};
