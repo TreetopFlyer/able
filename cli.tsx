@@ -99,8 +99,8 @@ if(arg._.length)
         }
         case "cloud" :
         {
-            let useToken = await collect("DENO_DEPLOY_TOKEN", arg, env);
-            let useProject = await collect("DENO_DEPLOY_PROJECT", arg, env);
+            const useToken = await collect("DENO_DEPLOY_TOKEN", arg, env);
+            const useProject = await collect("DENO_DEPLOY_PROJECT", arg, env);
             
             let scanProd:string[]|string|null = prompt(`Do you want to deploy to *production*?`);
             if(scanProd)
@@ -113,7 +113,7 @@ if(arg._.length)
                 scanProd = [];
             }
 
-            await SubProcess([
+            const command = [
                 "run",
                 "-A",
                 "--no-lock",
@@ -123,9 +123,13 @@ if(arg._.length)
                 `--project=${useProject}`,
                 `--token=${useToken}`,
                 `--import-map=${imports.path}`,
-                RootHost+"run.tsx",
+                `--exclude=.*,.*/,`,
                 ...scanProd,
-                ...Deno.args]);
+                RootHost+"run.tsx"];
+
+            await SubProcess(command);
+
+            break;
         }
         case "upgrade" :
         {

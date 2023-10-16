@@ -167,9 +167,10 @@ export async function Check()
             const importMap = imports.json.imports as Record<string, string>;
             const bake =async(obj:ConfigCheck)=> await Deno.writeTextFile(Deno.cwd()+"/"+obj.path, JSON.stringify(obj.json, null, "\t")); 
 
-            importMap["react"] = `https://esm.sh/preact@10.17.1/compat`;
-            importMap["react/"] = `https://esm.sh/preact@10.17.1/compat/`;
+            importMap["react"] = `https://esm.sh/preact@10.18.1/compat`;
+            importMap["react/"] = `https://esm.sh/preact@10.18.1/compat/`;
             importMap["@preact/signals"] = `https://esm.sh/@preact/signals@1.2.1`;
+            importMap["@twind/core"] = `https://esm.sh/@twind/core@1.1.3`;
             importMap[">able/"] = `${RootHost}`;
             if(!importMap[">able/app.tsx"])
             {
@@ -195,18 +196,30 @@ export async function Check()
             const confTasks = (config.json.tasks || {}) as Record<string, string>;
             config.json.tasks = {...confTasks, ...tasks};
 
-            const options = 
+            const optionsRequired = 
             {
-                "lib": ["deno.window", "dom", "dom.asynciterable"],
+                "lib": ["deno.window", "dom", "dom.iterable", "dom.asynciterable"],
                 "jsx": "react-jsx",
                 "jsxImportSource": "react"
             }
-            const compOpts = config.json.compilerOptions as Record<string, string|string[]> || {};
-            const compLib:string[] = compOpts.lib as string[] || [];
-            compOpts.jsx = options.jsx;
-            compOpts.jsxImportSource = options.jsxImportSource;
-            compOpts.lib = [...compLib, ...options.lib];
-            config.json.compilerOptions = compOpts;
+            const optionsCurrent = config.json.compilerOptions as Record<string, string|string[]> || {};
+            //const compLib:string[] = compOpts.lib as string[] || [];
+
+            if(!optionsCurrent.lib)
+            {
+                optionsCurrent.lib = [];
+            }
+            optionsRequired.lib.forEach(s=>
+            {
+                if(!optionsCurrent.lib.includes(s))
+                {
+                    (optionsCurrent.lib as string[]).push(s);
+                }
+            });
+
+            optionsCurrent.jsx = optionsRequired.jsx;
+            optionsCurrent.jsxImportSource = optionsRequired.jsxImportSource;
+            config.json.compilerOptions = optionsCurrent;
 
             await bake(imports);
             await bake(config);

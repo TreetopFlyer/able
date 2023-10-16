@@ -27,6 +27,10 @@ Configure({
     {
         inImports["react-original"] = inImports["react"];
         inImports["react"] = `/>able/hmr-react.tsx`;
+
+        inImports["signals-original"] = inImports["@preact/signals"];
+        inImports["@preact/signals"] = `/>able/hmr-signal.tsx`;
+
         return inImports;
     },
     async Extra(inReq, inURL, inExt, inMap, inConfig)

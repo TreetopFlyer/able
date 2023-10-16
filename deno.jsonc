@@ -1,10 +1,13 @@
 {
 	"imports": {
 		"react": "https://esm.sh/preact@10.17.1/compat",
+		"react-original": "https://esm.sh/preact@10.17.1/compat",
 		"react/": "https://esm.sh/preact@10.17.1/compat/",
+		"@preact/signals": "https://esm.sh/@preact/signals@1.2.1",
+		"signals-original": "https://esm.sh/@preact/signals@1.2.1",
+		"@twind/core": "https://esm.sh/@twind/core@1.1.3",
 		">able/": "http://localhost:4507/",
-		">able/app.tsx": "./app.tsx",
-		"@preact/signals": "https://esm.sh/@preact/signals@1.2.1"
+		">able/app.tsx": "./app.tsx"
 	},
 	"tasks": {
 		"check": "deno run -A --no-lock http://localhost:4507/cli.tsx check",
@@ -12,7 +15,7 @@
 		"debug": "deno run -A --no-lock http://localhost:4507/cli.tsx debug",
 		"serve": "deno run -A --no-lock http://localhost:4507/cli.tsx serve",
 		"cloud": "deno run -A --no-lock http://localhost:4507/cli.tsx cloud",
-		"install": "deno install -A -r -f http://localhost:4507/cli.tsx"
+		"install": "deno install -A -r -f -n able http://localhost:4507/cli.tsx"
 	},
 	"compilerOptions": {
 		"jsx": "react-jsx",
