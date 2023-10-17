@@ -15,7 +15,7 @@
 		"debug": "deno run -A --no-lock http://localhost:4507/cli.tsx debug",
 		"serve": "deno run -A --no-lock http://localhost:4507/cli.tsx serve",
 		"cloud": "deno run -A --no-lock http://localhost:4507/cli.tsx cloud",
-		"install": "deno install -A -r -f http://localhost:4507/cli.tsx"
+		"install": "deno install -A -r -f -n able http://localhost:4507/cli.tsx"
 	},
 	"compilerOptions": {
 		"jsx": "react-jsx",

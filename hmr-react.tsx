@@ -1,6 +1,4 @@
 import * as ReactParts from "react-original";
-import { Process } from "./hmr-listen.tsx";
-
 
 /*
 
@@ -27,7 +25,7 @@ When there is an HMR update:
 - statesNew is cleared.
 
 */
-const HMR =
+export const HMR =
 {
     reloads:1,
     RegisteredComponents: new Map() as Map<string, ()=>void>,
@@ -47,9 +45,6 @@ const HMR =
         this.statesNew = new Map();
     }
 };
-Process(()=>HMR.update())
-
-
 
 
 export type StateType = boolean|number|string|Record<string, string>
