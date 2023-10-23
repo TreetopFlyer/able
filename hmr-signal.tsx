@@ -1,4 +1,5 @@
 import * as SignalsParts from "signals-original";
+import DeepEqual from "https://esm.sh/deep-eql@4.1.3";
 
 type Entry<T> = [signal:SignalsParts.Signal<T>, initArg:T];
 
@@ -16,7 +17,7 @@ function ProxyGroup<T>(inFunc:(initArg:T)=>SignalsParts.Signal<T>)
     const proxy =(arg:T)=>
     {
         const lookupOld = recordEntry[recordIndex];
-        if(lookupOld && lookupOld[1] === arg)
+        if(lookupOld && DeepEqual(lookupOld[1], arg))
         {
             recordEntryNew[recordIndex] = lookupOld;
             recordIndex++;
