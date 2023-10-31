@@ -24,14 +24,12 @@ export const Shadow =(inElement:HTMLElement, inConfig?:TW.TwindUserConfig)=>
     return ShadowDiv;
 };
 
-export default async(inSelector:string, inModulePath:string, inMemberApp="default", inMemberCSS="CSS"):Promise<(()=>void)|false>=>
+export default async(inSelector:string, inModulePath:string, inMemberApp="default", inMemberCSS="CSS", inShadow=false):Promise<(()=>void)|false>=>
 {
-
   if(!inModulePath)
   {
     return false;
   }
-
 
   let dom = document.querySelector(inSelector);
   if(!dom)
@@ -41,7 +39,15 @@ export default async(inSelector:string, inModulePath:string, inMemberApp="defaul
   }
 
   const module = await import(inModulePath);
-  dom = Shadow(dom as HTMLElement, module[inMemberCSS])
+
+  if(inShadow)
+  {
+    dom = Shadow(dom as HTMLElement, module[inMemberCSS]);
+  }
+  else
+  {
+    TW.install(Configure);
+  }
 
   const app = React.createElement(()=> React.createElement(module[inMemberApp], null), null);
   if(React.render)
@@ -56,5 +62,4 @@ export default async(inSelector:string, inModulePath:string, inMemberApp="defaul
     root.render(app);
     return root.unmount;        
   }
-
 };
