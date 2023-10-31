@@ -10,17 +10,15 @@ const Configure =
   hash: false
 } as TW.TwindUserConfig;
 
-export const Shadow =(inElement:HTMLElement, inConfig?:TW.TwindUserConfig)=>
+export const Shadow =(inElement:HTMLElement, inConfig:TW.TwindUserConfig)=>
 {
-    const merge = inConfig ? {...Configure, ...inConfig} : Configure;
-
     const ShadowDOM = inElement.attachShadow({ mode: "open" });
     const ShadowDiv = document.createElement("div");
     const ShadowCSS = document.createElement("style");
 
     ShadowDOM.append(ShadowCSS);
     ShadowDOM.append(ShadowDiv);
-    TW.observe(TW.twind(merge, TW.cssom(ShadowCSS)), ShadowDiv);
+    TW.observe(TW.twind(inConfig, TW.cssom(ShadowCSS)), ShadowDiv);
     return ShadowDiv;
 };
 
@@ -40,13 +38,15 @@ export default async(inSelector:string, inModulePath:string, inMemberApp="defaul
 
   const module = await import(inModulePath);
 
+  const merge = inMemberCSS ? {...Configure, ...module[inMemberCSS]} : Configure;
+
   if(inShadow)
   {
-    dom = Shadow(dom as HTMLElement, module[inMemberCSS]);
+    dom = Shadow(dom as HTMLElement, merge);
   }
   else
   {
-    TW.install(Configure);
+    TW.install(merge);
   }
 
   const app = React.createElement(()=> React.createElement(module[inMemberApp], null), null);
