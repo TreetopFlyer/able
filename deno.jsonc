@@ -15,6 +15,7 @@
 		"debug": "deno run -A --no-lock http://localhost:4507/cli.tsx debug",
 		"serve": "deno run -A --no-lock http://localhost:4507/cli.tsx serve",
 		"cloud": "deno run -A --no-lock http://localhost:4507/cli.tsx cloud",
+		"baker": "deno run -A --no-lock http://localhost:4507/cli.tsx baker",
 		"install": "deno install -A -r -f -n able http://localhost:4507/cli.tsx"
 	},
 	"compilerOptions": {

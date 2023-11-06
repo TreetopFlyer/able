@@ -46,10 +46,18 @@ const options:SWCW.Options = {
 const dir = Deno.cwd();
 const folder = dir.substring(dir.lastIndexOf("\\")+1);
 console.log("searching", dir);
-const extensions = ["tsx", "ts", "jsx", "js"]
-for await(const file of walk(dir, {includeDirs:false}))
+const extensions = ["tsx", "ts", "jsx", "js"];
+try
 {
-    
+    await Deno.remove(".bake", { recursive: true });
+    console.log("rebuilding baked files");
+}
+catch(e)
+{
+    console.log("fresh bake");
+}
+for await(const file of walk(dir, {includeDirs:false}))
+{    
     const pathClean = file.path.replaceAll("\\", "/");
     const pathRel = pathClean.substring(dir.length);
 

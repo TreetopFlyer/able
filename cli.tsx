@@ -129,7 +129,7 @@ if(arg._.length)
         }
         case "baker" :
         {
-            const args = ["run", `-A`, `--no-lock`, `--config=${config.path}`, RootHost+"run.tsx", ...Deno.args];
+            const args = ["run", `-A`, `--no-lock`, `--config=${config.path}`, RootHost+"run-baker.tsx", ...Deno.args];
             await SubProcess(args);
             break;
         }
