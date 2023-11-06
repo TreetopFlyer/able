@@ -20,15 +20,8 @@ export default function(config:Serve.ConfigurationArgs)
     }
 }
 
-if(isDeploy)
+if(isDevelop)
 {
-    import("./run-deploy.tsx");
+    await import("./run-local.tsx");
 }
-else
-{
-    if(isDevelop)
-    {
-        await import("./run-local.tsx");
-    }
-    Serve.default();
-}
+Serve.default();

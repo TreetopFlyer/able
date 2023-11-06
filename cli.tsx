@@ -4,7 +4,7 @@ import { RootHost, HuntConfig, Install, Check } from "./checker.tsx";
 
 let arg = await Arg.parse(Deno.args);
 let env = await Env.load();
-const collect =async(inKey:string, inArg:Record<string, string>, inEnv:Record<string, string>):Promise<string|undefined>=>
+const collect =(inKey:string, inArg:Record<string, string>, inEnv:Record<string, string>):string|undefined=>
 {
     const scanArg = inArg[inKey];
     const scanEnvFile = inEnv[inKey];
@@ -93,7 +93,6 @@ if(arg._.length)
         case "serve" :
         {
             const args = ["run", `-A`, `--no-lock`, `--config=${config.path}`, RootHost+"run.tsx", ...Deno.args];
-            console.log("args are", args);
             await SubProcess(args);
             break;
         }
@@ -102,15 +101,12 @@ if(arg._.length)
             const useToken = await collect("DENO_DEPLOY_TOKEN", arg, env);
             const useProject = await collect("DENO_DEPLOY_PROJECT", arg, env);
             
-            let scanProd:string[]|string|null = prompt(`Do you want to deploy to *production*?`);
+            let scanProd = confirm(`Do you want to deploy to *production*?`);
+            let argProd:string[] = [];
             if(scanProd)
             {
-                scanProd = prompt(`Are you sure? This will update the live project at "${useProject}"`);
-                scanProd = scanProd ? ["--prod"] : [];
-            }
-            else
-            {
-                scanProd = [];
+                scanProd = confirm(`Are you sure? This will update the live project at "${useProject}"`);
+                argProd = scanProd ? ["--prod"] : [];
             }
 
             const command = [
@@ -124,11 +120,17 @@ if(arg._.length)
                 `--token=${useToken}`,
                 `--import-map=${imports.path}`,
                 `--exclude=.*,.*/,`,
-                ...scanProd,
+                ...argProd,
                 RootHost+"run.tsx"];
 
             await SubProcess(command);
 
+            break;
+        }
+        case "baker" :
+        {
+            const args = ["run", `-A`, `--no-lock`, `--config=${config.path}`, RootHost+"run.tsx", ...Deno.args];
+            await SubProcess(args);
             break;
         }
         case "upgrade" :

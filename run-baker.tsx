@@ -1,9 +1,15 @@
 import { walk, type WalkOptions, ensureFile } from "https://deno.land/std@0.204.0/fs/mod.ts";
 
-import ts from "npm:typescript";
+import ts, { isAssertEntry } from "npm:typescript";
 const tsopts:ts.CompilerOptions = { declaration: true, emitDeclarationOnly: true };
 const tshost = ts.createCompilerHost(tsopts);
-const tstypes =(fileNames: string[]):string[]=> {
+const tstypes =(fileName: string):string=> {
+    let output = "";
+    tshost.writeFile = (fileName: string, contents: string) => output = contents;
+    ts.createProgram([fileName], tsopts, tshost).emit();
+    return output;
+}
+const tstypes_all =(fileNames: string[]):string[]=> {
     const output:string[] = [];
     tshost.writeFile = (fileName: string, contents: string) => output[fileName.indexOf(fileName)] = contents;
     ts.createProgram(fileNames, tsopts, tshost).emit();
@@ -40,24 +46,58 @@ const options:SWCW.Options = {
 const dir = Deno.cwd();
 const folder = dir.substring(dir.lastIndexOf("\\")+1);
 console.log("searching", dir);
-
-for await(const file of walk(dir, {exts:["tsx", "ts", "jsx", "js"], includeDirs:false}))
+const extensions = ["tsx", "ts", "jsx", "js"]
+for await(const file of walk(dir, {includeDirs:false}))
 {
-    const pathClean = file.path.replaceAll("\\", "/");
-    const text = await Deno.readTextFile(pathClean);
-
-    const {code} = await SWCW.transform(text, { ...options, filename:file.name});
-    const pathRel = pathClean.substring(dir.length);
-    const pathJS = `baked${pathRel}`;
-    const pathDTS = pathJS.substring(0, pathJS.lastIndexOf("."))+".d.ts";
     
-    await ensureFile(pathDTS);
-    await ensureFile(pathJS);
+    const pathClean = file.path.replaceAll("\\", "/");
+    const pathRel = pathClean.substring(dir.length);
 
-    await Deno.writeTextFile(pathJS, `/// <reference types=".${pathDTS.substring(pathDTS.lastIndexOf("/"))}" />\n${code}`, {create:true});
+    if(!pathRel.startsWith(".") && !pathRel.includes("/."))
+    {  
+        const extension = file.name.substring(file.name.lastIndexOf(".")+1);
+        const pathBake = `.bake${pathRel}`;
+        if(extensions.includes(extension))
+        {
+            const pathDTS = pathBake.substring(0, pathBake.lastIndexOf("."))+".d.ts";
+
+            console.log("processing", pathRel);
+    
+            const text = await Deno.readTextFile(pathClean);
+            const {code} = await SWCW.transform(text, { ...options, filename:file.name});        
+
+            // check for types export directive
+            let tripleSlash = "";
+            const read = await Deno.open(file.path);
+            const buffer = new Uint8Array(256); // Set the buffer size to the maximum line length
+            try {
+                const bytesRead = await read.read(buffer);
+                if(bytesRead)
+                {
+                    if(new TextDecoder().decode(buffer.subarray(0, bytesRead)).indexOf("@able-types") != -1)
+                    {
+                        tripleSlash =`/// <reference types=".${pathDTS.substring(pathDTS.lastIndexOf("/"))}" />\n`;
+                    }
+                }
+            } finally {
+                read.close();
+            }
+        
+            await ensureFile(pathBake);
+            await Deno.writeTextFile(pathBake, tripleSlash+code);
+
+            if(tripleSlash)
+            {
+                console.log("making types")
+                await ensureFile(pathDTS);
+                await Deno.writeTextFile(pathDTS, tstypes("."+pathRel));   
+            }
+         
+        }
+        else
+        {
+            await Deno.copyFile("."+pathRel, pathBake);
+        }
+    }
 }
 
-
-
-const output = tstypes(['hmr-listen.tsx']);
-console.log(output);
