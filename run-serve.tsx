@@ -92,7 +92,7 @@ let Configuration:Configuration =
             minify:
             {
                 compress: { unused: true },
-                mangle: true
+                mangle: false
             },
             parser:
             {
